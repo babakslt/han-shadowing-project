@@ -1,5 +1,5 @@
 # Mandarin Shadowing App
-
+**Has been made using QWEN CLI and QWEN Coder**
 A comprehensive Chinese language learning application that uses audio generation and shadowing techniques to help users practice Mandarin pronunciation.
 
 ## Overview
