@@ -30,6 +30,118 @@
     <script type="text/babel">
         const { useState, useEffect, useRef } = React;
 
+        // --- PROGRESS SERVICE ---
+        const ProgressService = {
+            // Initialize progress data if not exists
+            init: () => {
+                if (!localStorage.getItem('progressData')) {
+                    localStorage.setItem('progressData', JSON.stringify({}));
+                }
+                if (!localStorage.getItem('bookmarks')) {
+                    localStorage.setItem('bookmarks', JSON.stringify([]));
+                }
+            },
+            
+            // Get all progress data
+            getProgressData: () => {
+                return JSON.parse(localStorage.getItem('progressData') || '{}');
+            },
+            
+            // Get bookmarks
+            getBookmarks: () => {
+                return JSON.parse(localStorage.getItem('bookmarks') || '[]');
+            },
+            
+            // Save progress data
+            saveProgressData: (data) => {
+                localStorage.setItem('progressData', JSON.stringify(data));
+            },
+            
+            // Save bookmarks
+            saveBookmarks: (bookmarks) => {
+                localStorage.setItem('bookmarks', JSON.stringify(bookmarks));
+            },
+            
+            // Update category progress
+            updateCategoryProgress: (categoryId) => {
+                const progressData = ProgressService.getProgressData();
+                const timestamp = new Date().toISOString();
+                
+                if (!progressData[categoryId]) {
+                    progressData[categoryId] = {
+                        times_practiced: 0,
+                        last_practiced: null,
+                        target_practices: 10  // Default target
+                    };
+                }
+                
+                progressData[categoryId].times_practiced += 1;
+                progressData[categoryId].last_practiced = timestamp;
+                
+                ProgressService.saveProgressData(progressData);
+                return progressData[categoryId];
+            },
+            
+            // Get category progress
+            getCategoryProgress: (categoryId) => {
+                const progressData = ProgressService.getProgressData();
+                return progressData[categoryId] || {
+                    times_practiced: 0,
+                    last_practiced: null,
+                    target_practices: 10
+                };
+            },
+            
+            // Set target practices for a category
+            setTargetPractices: (categoryId, target) => {
+                const progressData = ProgressService.getProgressData();
+                
+                if (!progressData[categoryId]) {
+                    progressData[categoryId] = {
+                        times_practiced: 0,
+                        last_practiced: null,
+                        target_practices: target
+                    };
+                } else {
+                    progressData[categoryId].target_practices = target;
+                }
+                
+                ProgressService.saveProgressData(progressData);
+            },
+            
+            // Toggle bookmark for a phrase
+            toggleBookmark: (phrase) => {
+                const bookmarks = ProgressService.getBookmarks();
+                const phraseKey = `${phrase.category}__${phrase.chinese}__${phrase.pinyin}`;
+                const existingIndex = bookmarks.findIndex(b => b.key === phraseKey);
+                
+                if (existingIndex >= 0) {
+                    // Remove bookmark
+                    bookmarks.splice(existingIndex, 1);
+                } else {
+                    // Add bookmark
+                    bookmarks.push({
+                        key: phraseKey,
+                        phrase: phrase,
+                        timestamp: new Date().toISOString()
+                    });
+                }
+                
+                ProgressService.saveBookmarks(bookmarks);
+                return existingIndex < 0; // return true if added, false if removed
+            },
+            
+            // Check if a phrase is bookmarked
+            isBookmarked: (phrase) => {
+                const bookmarks = ProgressService.getBookmarks();
+                const phraseKey = `${phrase.category}__${phrase.chinese}__${phrase.pinyin}`;
+                return bookmarks.some(b => b.key === phraseKey);
+            }
+        };
+
+        // Initialize progress service
+        ProgressService.init();
+
         // --- ICONS ---
         const Icons = {
             Play: () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>,
@@ -64,10 +176,68 @@
             const [showCn, setShowCn] = useState(true);
             const [showPy, setShowPy] = useState(true);
             const [showEn, setShowEn] = useState(true);
+            
+            // New state for Phase 1 features
+            const [showHelpModal, setShowHelpModal] = useState(false);
 
             const timerRef = useRef(null);
             const audioRef = useRef(new Audio());
             const stateRef = useRef({ activePhraseIndex, activeCatIndex, loopCount, loops, pauseTime, isPlaying, speed, data });
+            
+            // Keyboard shortcut handler
+            const handleKeyPress = (e) => {
+                // Only handle shortcuts when not in an input field
+                if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+                
+                switch(e.key) {
+                    case ' ':
+                        e.preventDefault();
+                        togglePlay();
+                        break;
+                    case 'ArrowRight':
+                        e.preventDefault();
+                        nextPhrase();
+                        break;
+                    case 'ArrowLeft':
+                        e.preventDefault();
+                        prevPhrase();
+                        break;
+                    case 'r':
+                    case 'R':
+                        e.preventDefault();
+                        restartPhrase();
+                        break;
+                    case 'b':
+                    case 'B':
+                        e.preventDefault();
+                        toggleBookmarkForCurrentPhrase();
+                        break;
+                    case '?':
+                        e.preventDefault();
+                        setShowHelpModal(true);
+                        break;
+                    case '1':
+                    case '2':
+                    case '3':
+                    case '4':
+                    case '5':
+                    case '6':
+                    case '7':
+                    case '8':
+                    case '9':
+                        e.preventDefault();
+                        setLoops(parseInt(e.key));
+                        break;
+                }
+            };
+
+            // Keyboard shortcut effect
+            useEffect(() => {
+                window.addEventListener('keydown', handleKeyPress);
+                return () => {
+                    window.removeEventListener('keydown', handleKeyPress);
+                };
+            }, [activePhraseIndex, activeCatIndex, isPlaying]);
 
             // Sync Ref
             useEffect(() => {
@@ -195,6 +365,10 @@
                 const phrase = getCurrentPhrase();
                 if(!phrase) return stop();
                 
+                // Update category progress when starting to play
+                const categoryName = phrase.category || `Category ${activeCatIndex}`;
+                ProgressService.updateCategoryProgress(categoryName);
+                
                 playAudio(phrase.chinese, handleAudioEnd);
             };
 
@@ -269,6 +443,25 @@
                 setLoopCount(1);
             };
 
+            // Restart current phrase function
+            const restartPhrase = () => {
+                stop();
+                setLoopCount(1);
+                if (isPlaying) {
+                    setIsPlaying(true);
+                    stateRef.current.isPlaying = true;
+                    playSequence();
+                }
+            };
+
+            // Toggle bookmark for current phrase
+            const toggleBookmarkForCurrentPhrase = () => {
+                const phrase = getCurrentPhrase();
+                if (phrase) {
+                    ProgressService.toggleBookmark(phrase);
+                }
+            };
+
             // Scroll Helper
             const listRef = useRef(null);
             useEffect(() => {
@@ -331,9 +524,15 @@
                                     setActivePhraseIndex(0);
                                 }}
                             >
-                                {data.map((cat, idx) => (
-                                    <option key={idx} value={idx}>{cat.category} ({cat.phrases.length})</option>
-                                ))}
+                                {data.map((cat, idx) => {
+                                    const progress = ProgressService.getCategoryProgress(cat.category);
+                                    const percentage = Math.round((progress.times_practiced / progress.target_practices) * 100);
+                                    return (
+                                        <option key={idx} value={idx}>
+                                            {cat.category} ({cat.phrases.length}) - {progress.times_practiced}/{progress.target_practices} ({percentage}%)
+                                        </option>
+                                    );
+                                })}
                             </select>
                             <label className="cursor-pointer bg-blue-600 text-white p-2 rounded-lg font-medium">
                                 +
@@ -412,17 +611,45 @@
                     </div>
 
                     <div className="flex-1 overflow-y-auto playlist-scroll" ref={listRef}>
-                        {phrases.map((phrase, idx) => (
-                            <div key={idx} onClick={() => selectPhrase(idx)} className={`p-4 border-b flex items-center gap-4 cursor-pointer hover:bg-slate-50 ${idx === activePhraseIndex ? 'bg-blue-50 border-l-4 border-l-blue-500' : 'border-transparent'}`}>
-                                <span className={`text-xs font-bold w-6 h-6 flex items-center justify-center rounded-full ${idx === activePhraseIndex ? 'bg-blue-200 text-blue-700' : 'bg-slate-100 text-slate-400'}`}>{idx + 1}</span>
-                                <div className="flex-1">
-                                    <p className={`font-medium ${idx === activePhraseIndex ? 'text-blue-900' : 'text-slate-700'}`}>{phrase.chinese}</p>
-                                    <p className="text-xs text-slate-400">{phrase.pinyin}</p>
+                        {phrases.map((phrase, idx) => {
+                            const isBookmarked = ProgressService.isBookmarked(phrase);
+                            return (
+                                <div key={idx} onClick={() => selectPhrase(idx)} className={`p-4 border-b flex items-center gap-4 cursor-pointer hover:bg-slate-50 ${idx === activePhraseIndex ? 'bg-blue-50 border-l-4 border-l-blue-500' : 'border-transparent'}`}>
+                                    <span className={`text-xs font-bold w-6 h-6 flex items-center justify-center rounded-full ${idx === activePhraseIndex ? 'bg-blue-200 text-blue-700' : 'bg-slate-100 text-slate-400'}`}>{idx + 1}</span>
+                                    <div className="flex-1">
+                                        <p className={`font-medium ${idx === activePhraseIndex ? 'text-blue-900' : 'text-slate-700'}`}>{phrase.chinese}</p>
+                                        <p className="text-xs text-slate-400">{phrase.pinyin}</p>
+                                    </div>
+                                    {isBookmarked && <span className="text-yellow-500">★</span>}
+                                    {idx === activePhraseIndex && isPlaying && <Icons.Mic className="w-4 h-4 text-blue-500 animate-bounce" />}
                                 </div>
-                                {idx === activePhraseIndex && isPlaying && <Icons.Mic className="w-4 h-4 text-blue-500 animate-bounce" />}
-                            </div>
-                        ))}
+                            );
+                        })}
                     </div>
+
+                    {/* Help Modal */}
+                    {showHelpModal && (
+                        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+                            <div className="bg-white rounded-lg max-w-md w-full p-6 relative">
+                                <button 
+                                    onClick={() => setShowHelpModal(false)} 
+                                    className="absolute top-3 right-3 text-gray-500 hover:text-gray-700"
+                                >
+                                    ✕
+                                </button>
+                                <h2 className="text-xl font-bold mb-4 text-center">Keyboard Shortcuts</h2>
+                                <div className="space-y-2">
+                                    <div className="flex justify-between py-1 border-b"><span>Space</span><span>Play/Pause</span></div>
+                                    <div className="flex justify-between py-1 border-b"><span>← →</span><span>Previous/Next phrase</span></div>
+                                    <div className="flex justify-between py-1 border-b"><span>R</span><span>Restart phrase</span></div>
+                                    <div className="flex justify-between py-1 border-b"><span>B</span><span>Bookmark phrase</span></div>
+                                    <div className="flex justify-between py-1 border-b"><span>1-9</span><span>Set number of loops</span></div>
+                                    <div className="flex justify-between py-1 border-b"><span>S</span><span>Change speed</span></div>
+                                    <div className="flex justify-between py-1"><span>?</span><span>Show help</span></div>
+                                </div>
+                            </div>
+                        </div>
+                    )}
                 </div>
             );
         };
