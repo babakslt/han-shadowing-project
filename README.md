@@ -20,6 +20,10 @@ The application includes phrases organized by difficulty levels (Level 1 to Leve
 - **Web-based Player**: React-powered interface for practicing shadowing
 - **Customizable Playback**: Adjustable speed, repeat options, and pause times
 - **Visual Controls**: Show/hide Chinese characters, pinyin, and English translations
+- **Organized Audio Files**: Audio files organized in category-based subfolders
+- **YAML File Management**: Support for multiple YAML files in a dedicated folder
+- **Dynamic YAML Loading**: Add new YAML files without refreshing the page
+- **Memory Activator Mode**: Alternative practice mode (EN Audio -> Pause -> CH Audio -> Pause)
 
 ## Prerequisites
 
@@ -36,68 +40,104 @@ The application includes phrases organized by difficulty levels (Level 1 to Leve
 
 2. Install Python dependencies:
    ```bash
-   pip install edge-tts pyyaml
+   pip install edge-tts pyyaml argparse glob3
    ```
 
 ## Usage
 
 ### Generate Audio Files
 
-Run the Python script to generate audio files for all phrases:
+Run the Python script to generate audio files for phrases:
 
+**For a specific YAML file:**
+```bash
+python main.py path/to/your/yaml/file.yaml
+```
+
+**For all YAML files in the yaml/ folder:**
 ```bash
 python main.py
 ```
 
 This will:
-- Load phrases from `data.yaml`
-- Generate audio files using Edge TTS
-- Save MP3 files to the `audio/` folder with MD5-based filenames
+- Create a `yaml/` folder if it doesn't exist
+- Load phrases from specified YAML file or all YAML files in the `yaml/` folder
+- Generate audio files using Edge TTS for both Chinese and English text
+- Save MP3 files to category-named subfolders under the `audio/` folder with MD5-based filenames
 - Skip files that already exist
 
-### Use the Web Application
+### Use the Web Applications
 
-1. Open `index.html` in your web browser
-2. The application will automatically use the pre-generated audio files from the `audio/` folder
-3. Select a category from the dropdown menu
-4. Use the playback controls to practice shadowing
+1. **Shadowing App**: Open `index.html` in your web browser
+2. **Memory Activator**: Open `memory-activator.html` in your web browser
+3. Both applications will automatically use the pre-generated audio files from the `audio/` folder's category subfolders
+4. Use the dropdown menu to select categories
+5. Use the "+" button to add new YAML files without refreshing
+6. Use the playback controls to practice shadowing
+
+### Memory Activator Mode
+
+The Memory Activator provides an alternative learning sequence:
+- Plays English audio first
+- Pauses to allow mental recall of the Chinese translation
+- Plays Chinese audio for verification
+- Includes keyboard shortcuts for better control
+
+### Keyboard Shortcuts (Memory Activator)
+
+- **Space bar**: Play/pause audio
+- **Left arrow** or **A**: Previous phrase
+- **Right arrow** or **D**: Next phrase
+- **Up arrow** or **W**: Increase speed
+- **Down arrow** or **S**: Decrease speed
+- **Q**: Decrease pause duration
+- **E**: Increase pause duration
 
 ### Configuration
 
 The `main.py` file contains configurable options:
 
 - `OUTPUT_FOLDER`: Directory to save audio files (default: "audio")
-- `VOICE`: TTS voice to use (default: "zh-CN-XiaoxiaoNeural")
+- `YAML_FOLDER`: Directory to look for YAML files (default: "yaml")
+- `CHINESE_VOICE`: Chinese TTS voice (default: "zh-CN-XiaoxiaoNeural")
+- `ENGLISH_VOICE`: English TTS voice (default: "en-US-JennyNeural")
 - `SPEAKING_RATE`: Speed of speech (default: 0.85 for 85% of normal speed)
 
 ## Project Structure
 
 ```
 .
-├── main.py         # Python script for audio generation
-├── data.yaml       # Chinese phrases organized by levels
-├── index.html      # Web-based shadowing player
-├── README.md       # This file
-├── audio/          # Generated audio files
-└── package-lock.json
+├── main.py                  # Python script for audio generation
+├── index.html               # Web-based shadowing player
+├── memory-activator.html    # Alternative practice mode
+├── yaml/                    # YAML files organized by categories
+│   ├── data.yaml            # Original phrase collection
+│   └── sample_phrases.yaml  # Example file structure
+├── audio/                   # Generated audio files organized by category
+│   ├── Greetings/           # Audio files for Greetings category
+│   ├── Basic_Phrases/       # Audio files for Basic Phrases category
+│   └── ...                  # Other category folders
+└── README.md                # This file
 ```
 
 ## How It Works
 
-1. The `data.yaml` file contains Chinese phrases organized by categories (levels and lessons)
+1. The YAML files contain Chinese phrases organized by categories (levels and lessons)
 2. Each phrase includes:
    - Chinese characters
    - Pinyin pronunciation
    - English translation
-3. Running `main.py` generates audio files for each phrase
-4. The web player uses these audio files for the shadowing practice
-5. If audio files are missing, the web app falls back to browser-based TTS
+3. Running `main.py` generates audio files for each phrase in both Chinese and English
+4. Audio files are organized in category-named subfolders under the audio directory
+5. The web players use these audio files for the shadowing practice
+6. If audio files are missing, the web app falls back to browser-based TTS
+7. New YAML files can be added dynamically using the "+" button
 
 ## Customization
 
 ### Adding New Phrases
 
-Edit `data.yaml` to add new phrases in the following format:
+1. **To the yaml folder**: Add new YAML files with the following format:
 
 ```yaml
 - category: "New Category"
@@ -107,10 +147,13 @@ Edit `data.yaml` to add new phrases in the following format:
       meaning: "Hello."
 ```
 
+2. **To the application**: Use the "+" button in either web application to add new YAML files without refreshing
+
 ### Changing Voice Settings
 
 Modify the constants in `main.py`:
-- `VOICE`: Choose from available Microsoft Edge TTS voices
+- `CHINESE_VOICE`: Choose from available Microsoft Edge TTS Chinese voices
+- `ENGLISH_VOICE`: Choose from available Microsoft Edge TTS English voices
 - `SPEAKING_RATE`: Adjust between 0.5 (slower) and 1.5 (faster)
 
 ## License
