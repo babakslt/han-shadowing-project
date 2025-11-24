@@ -24,6 +24,11 @@ The application includes phrases organized by difficulty levels (Level 1 to Leve
 - **YAML File Management**: Support for multiple YAML files in a dedicated folder
 - **Dynamic YAML Loading**: Add new YAML files without refreshing the page
 - **Memory Activator Mode**: Alternative practice mode (EN Audio -> Pause -> CH Audio -> Pause)
+- **Enhanced Progress Tracking**: Category and phrase-level progress tracking with user profiles
+- **Comprehensive Keyboard Shortcuts**: Power user functionality for efficient navigation and control
+- **Bookmark System**: Ability to bookmark phrases for focused practice
+- **Category Target Setting**: Set target number of practices per category
+- **Visual Progress Indicators**: Progress bars and statistics for learning progress
 
 ## Prerequisites
 
@@ -73,7 +78,11 @@ This will:
 3. Both applications will automatically use the pre-generated audio files from the `audio/` folder's category subfolders
 4. Use the dropdown menu to select categories
 5. Use the "+" button to add new YAML files without refreshing
-6. Use the playback controls to practice shadowing
+6. Set category targets using the input field below the category selector
+7. View progress with the visual progress bar
+8. Access learning statistics via the "Profile" button
+9. Bookmark phrases using the star button to the right of each phrase
+10. Use the playback controls and keyboard shortcuts to practice shadowing
 
 ### Memory Activator Mode
 
@@ -83,13 +92,28 @@ The Memory Activator provides an alternative learning sequence:
 - Plays Chinese audio for verification
 - Includes keyboard shortcuts for better control
 
-### Keyboard Shortcuts (Memory Activator)
+### Keyboard Shortcuts
 
-- **Space bar**: Play/pause audio
-- **Left arrow** or **A**: Previous phrase
-- **Right arrow** or **D**: Next phrase
-- **Up arrow** or **W**: Increase speed
-- **Down arrow** or **S**: Decrease speed
+**Shadowing App Shortcuts:**
+- **Space**: Play/pause audio
+- **A**: Previous phrase
+- **D**: Next phrase
+- **W**: Increase speed
+- **S**: Decrease speed
+- **Q**: Decrease pause duration
+- **E**: Increase pause duration
+- **R**: Restart phrase
+- **B**: Bookmark phrase
+- **1-9**: Set number of loops
+- **?**: Show help
+- **Esc**: Close window
+
+**Memory Activator Shortcuts:**
+- **Space**: Play/pause audio
+- **A** or **Left arrow**: Previous phrase
+- **D** or **Right arrow**: Next phrase
+- **W** or **Up arrow**: Increase speed
+- **S** or **Down arrow**: Decrease speed
 - **Q**: Decrease pause duration
 - **E**: Increase pause duration
 

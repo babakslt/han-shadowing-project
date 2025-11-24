@@ -1,31 +1,39 @@
 # Project Summary
 
 ## Overall Goal
-Create a standalone Mandarin shadowing application that loads phrases from a YAML file and plays pre-generated audio at a slower, learning-friendly pace using a browser-based interface that works without a server.
+Create a comprehensive Chinese language learning application that uses audio generation and shadowing techniques to help users practice Mandarin pronunciation with organized content, multiple practice modes, and dynamic file loading capabilities.
 
 ## Key Knowledge
-- **Technology Stack**: Python for audio generation, React+Babel+Tailwind for web interface, edge-tts for audio synthesis
-- **File Structure**: data.yaml (phrase categories), audio/ folder (generated mp3 files), index.html (standalone interface)
-- **Audio Generation**: Uses MD5 hashing to create consistent filenames for audio files based on Chinese text
-- **Speed Control**: SSML prosody tags with percentage format (e.g., "85%") instead of decimals to control speaking rate
-- **Voice**: zh-CN-XiaoxiaoNeural for Chinese speech synthesis
-- **Standalone Operation**: Uses file upload interface to load YAML data instead of server fetch, allowing direct file:// access
+- **Technology Stack**: Python for audio generation, React+Babel+Tailwind for web interface, edge-tts for audio synthesis, MD5 hashing for consistent audio filenames
+- **File Structure**: YAML files in `yaml/` folder, audio files organized in category-based subfolders under `audio/`, HTML files for web interfaces
+- **Audio Generation**: Uses MD5 hashing to create consistent filenames for audio files based on Chinese and English text; generates both Chinese and English audio files for each phrase
+- **Two Web Applications**: `index.html` (Shadowing App) and `memory-activator.html` (Memory Activator mode with EN Audio -> Pause -> CH Audio -> Pause sequence)
+- **Voice Configuration**: Chinese voice `zh-CN-XiaoxiaoNeural`, English voice `en-US-JennyNeural` with 0.85x speaking rate
+- **Dynamic File Loading**: Both applications can load additional YAML files using the "+" button without refreshing the page
+- **Keyboard Shortcuts**: Space bar (play/pause), arrows (navigation), W/S (speed), Q/E (pause duration) in Memory Activator
 
 ## Recent Actions
-1. [DONE] Modified main.py to load phrases from data.yaml instead of hardcoded list
-2. [DONE] Added SSML support to control speaking rate (0.85x speed) for learning-friendly audio
-3. [DONE] Updated index.html to use file upload instead of server fetch for YAML data
-4. [DONE] Generated 10 audio files at slower speaking rate (85% of normal speed)
-5. [DONE] Modified UI to show file upload screen when no data is loaded
-6. [DONE] Preserved fallback to browser TTS if audio files are missing
+1. [DONE] Updated Python script to organize audio files in category-based subfolders in audio directory
+2. [DONE] Created yaml folder to organize YAML files and made script process all YAML files in the folder
+3. [DONE] Modified audio engine to construct correct paths using category subfolders
+4. [DONE] Implemented Memory Activator mode with English audio first, pause for recall, then Chinese audio
+5. [DONE] Added keyboard shortcuts for better control in Memory Activator
+6. [DONE] Added "+" button to both web apps to load new YAML files without page refresh
+7. [DONE] Fixed JSX syntax errors in both HTML files
+8. [DONE] Updated README to document all new features and project structure
+9. [DONE] Created .gitignore to exclude unnecessary files/folders (VSCode, Qwen, archives)
 
 ## Current Plan
-- [DONE] Audio generation at slower speed working correctly
-- [DONE] Standalone HTML interface with file upload functionality
-- [DONE] Application ready for offline use with pre-generated audio files
-- [TODO] User can now open index.html directly in browser and upload data.yaml to use the application with slower-paced audio for learning
+- [DONE] Audio generation with organized folder structure working correctly
+- [DONE] Dynamic YAML file loading without page refresh implemented
+- [DONE] Memory Activator mode with proper audio sequence (EN->Pause->CH->Pause)
+- [DONE] Keyboard shortcuts available in Memory Activator
+- [DONE] Application ready for use with organized content structure
+- [TODO] Generate audio for more categories if needed
+- [TODO] Test all functionality thoroughly in browser environment
+- [TODO] Document any additional customization options for users
 
 ---
 
 ## Summary Metadata
-**Update time**: 2025-11-23T14:24:55.650Z 
+**Update time**: 2025-11-24T12:01:59.868Z 
