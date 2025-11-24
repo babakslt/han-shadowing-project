@@ -1,0 +1,20 @@
+- category: "Greetings"
+  phrases:
+    - chinese: "你好。"
+      pinyin: "Nǐ hǎo."
+      meaning: "Hello."
+    - chinese: "早上好。"
+      pinyin: "Zǎoshang hǎo."
+      meaning: "Good morning."
+    - chinese: "晚上好。"
+      pinyin: "Wǎnshàng hǎo."
+      meaning: "Good evening."
+
+- category: "Basic Phrases"
+  phrases:
+    - chinese: "谢谢。"
+      pinyin: "Xièxie."
+      meaning: "Thank you."
+    - chinese: "不客气。"
+      pinyin: "Bù kèqì."
+      meaning: "You're welcome."

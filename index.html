@@ -97,7 +97,34 @@
                 }
             };
 
-            // Handle file input
+            // Handle new YAML file upload and merge with existing data
+            const handleNewYamlFile = async (e) => {
+                const file = e.target.files[0];
+                if (file && (file.name.endsWith('.yaml') || file.name.endsWith('.yml'))) {
+                    setLoading(true);
+                    try {
+                        const text = await file.text();
+                        const parsed = jsyaml.load(text);
+                        if (Array.isArray(parsed) && parsed.length > 0) {
+                            // Merge new data with existing data
+                            const mergedData = [...data, ...parsed];
+                            setData(mergedData);
+                            setActiveCatIndex(mergedData.length - 1); // Switch to the first newly added category
+                            setActivePhraseIndex(0);
+                        } else {
+                            throw new Error("YAML format is incorrect or empty");
+                        }
+                    } catch (e) {
+                        setError(e.message);
+                    } finally {
+                        setLoading(false);
+                    }
+                } else {
+                    setError("Please select a valid .yaml or .yml file");
+                }
+            };
+
+            // Handle initial file input
             const handleFileChange = (e) => {
                 const file = e.target.files[0];
                 if (file && file.name.endsWith('.yaml')) {
@@ -110,7 +137,12 @@
             // --- HELPERS ---
             const getCurrentPhrase = () => {
                 if (!data[stateRef.current.activeCatIndex]) return null;
-                return data[stateRef.current.activeCatIndex].phrases[stateRef.current.activePhraseIndex];
+                const phrase = data[stateRef.current.activeCatIndex].phrases[stateRef.current.activePhraseIndex];
+                // Add category to the phrase object for path construction
+                if (phrase) {
+                    phrase.category = data[stateRef.current.activeCatIndex].category;
+                }
+                return phrase;
             };
 
             const getPhrasesInCat = () => {
@@ -122,8 +154,14 @@
             const playAudio = async (text, onEnd) => {
                 const audio = audioRef.current;
 
-                // 1. Try Local File
-                const filename = `audio/audio_${md5(text)}.mp3`;
+                // Get current category to construct proper path
+                const currentPhrase = getCurrentPhrase();
+                const categoryName = currentPhrase ? currentPhrase.category || 'default' : 'default';
+                // Normalize category name to be filesystem-friendly (same as in Python script)
+                const safeCategory = categoryName.replace(/[^a-zA-Z0-9 -]/g, '').replace(/\s+/g, '_');
+
+                // 1. Try Local File in category subfolder
+                const filename = `audio/${safeCategory}/audio_${md5(text)}.mp3`;
 
                 // Helper to try play
                 const tryPlay = (src) => new Promise((resolve, reject) => {
@@ -283,9 +321,9 @@
                             </div>
                         </div>
                         {/* Category Selector */}
-                        <div className="px-4 pb-4">
-                            <select 
-                                className="w-full p-2 bg-slate-100 rounded-lg font-medium outline-none"
+                        <div className="px-4 pb-4 flex items-center gap-2">
+                            <select
+                                className="flex-1 p-2 bg-slate-100 rounded-lg font-medium outline-none"
                                 value={activeCatIndex}
                                 onChange={(e) => {
                                     stop();
@@ -297,6 +335,15 @@
                                     <option key={idx} value={idx}>{cat.category} ({cat.phrases.length})</option>
                                 ))}
                             </select>
+                            <label className="cursor-pointer bg-blue-600 text-white p-2 rounded-lg font-medium">
+                                +
+                                <input
+                                    type="file"
+                                    accept=".yaml,.yml"
+                                    onChange={(e) => handleNewYamlFile(e)}
+                                    className="hidden"
+                                />
+                            </label>
                         </div>
                     </div>
 
