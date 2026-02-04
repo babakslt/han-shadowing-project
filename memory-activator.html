@@ -24,6 +24,72 @@
         .playlist-scroll { scroll-behavior: smooth; }
         .range-thumb::-webkit-slider-thumb { -webkit-appearance: none; width: 16px; height: 16px; background: #3b82f6; border-radius: 50%; cursor: pointer; }
         .no-scrollbar::-webkit-scrollbar { display: none; }
+        :root {
+            --bg: linear-gradient(135deg, #f6efe5, #efe3d2);
+            --panel: #fffaf2;
+            --panel-2: #f4e9d8;
+            --text: #2f2620;
+            --muted: #7a6b5b;
+            --border: #e6d5c4;
+            --accent: #c25b2d;
+            --accent-contrast: #fff6ed;
+            --accent-soft: #f6d2bd;
+            --chip: #f0e0cf;
+            --chip-text: #7a5a3c;
+            --shadow: 0 20px 60px rgba(77, 58, 40, 0.18);
+        }
+        [data-theme="paper"] {
+            --bg: linear-gradient(135deg, #f6efe5, #efe3d2);
+            --panel: #fffaf2;
+            --panel-2: #f4e9d8;
+            --text: #2f2620;
+            --muted: #7a6b5b;
+            --border: #e6d5c4;
+            --accent: #c25b2d;
+            --accent-contrast: #fff6ed;
+            --accent-soft: #f6d2bd;
+            --chip: #f0e0cf;
+            --chip-text: #7a5a3c;
+            --shadow: 0 20px 60px rgba(77, 58, 40, 0.18);
+        }
+        [data-theme="ink"] {
+            --bg: linear-gradient(135deg, #f5f7f2, #dde7e2);
+            --panel: #f9fbf8;
+            --panel-2: #eef3f0;
+            --text: #243336;
+            --muted: #5b6b6f;
+            --border: #d3ded8;
+            --accent: #2d4f5d;
+            --accent-contrast: #eef8fb;
+            --accent-soft: #d8e5e2;
+            --chip: #e5efea;
+            --chip-text: #3e575f;
+            --shadow: 0 20px 60px rgba(36, 51, 54, 0.12);
+        }
+        [data-theme="studio"] {
+            --bg: linear-gradient(135deg, #f7f5f2, #e9eef1);
+            --panel: #ffffff;
+            --panel-2: #f3f5f7;
+            --text: #1f2937;
+            --muted: #5b6775;
+            --border: #e2e8f0;
+            --accent: #111827;
+            --accent-contrast: #fef3c7;
+            --accent-soft: #ffe5d5;
+            --chip: #eef2f6;
+            --chip-text: #2c3a4a;
+            --shadow: 0 24px 70px rgba(15, 23, 42, 0.14);
+        }
+        body { background: var(--bg); color: var(--text); }
+        .theme-shell { background: var(--panel); border: 1px solid var(--border); box-shadow: var(--shadow); }
+        .theme-border { border-color: var(--border) !important; }
+        .theme-card { background: var(--panel-2) !important; }
+        .theme-muted { color: var(--muted) !important; }
+        .theme-chip { background: var(--chip); color: var(--chip-text); border: 1px solid var(--border); }
+        .theme-button-primary { background: var(--accent); color: var(--accent-contrast); }
+        .theme-button-primary:hover { filter: brightness(0.95); }
+        .theme-play { background: var(--accent); color: var(--accent-contrast); }
+        .theme-play.is-playing { background: var(--accent-soft); color: var(--accent); }
     </style>
 </head>
 <body class="bg-slate-50 text-slate-800">
@@ -43,6 +109,14 @@
             Wifi: () => <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12.55a11 11 0 0 1 14.08 0"></path><path d="M1.42 9a16 16 0 0 1 21.16 0"></path><path d="M8.53 16.11a6 6 0 0 1 6.95 0"></path><line x1="12" y1="20" x2="12.01" y2="20"></line></svg>,
             Refresh: () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M23 4v6h-6"></path><path d="M1 20v-6h6"></path><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>
         };
+
+        // --- THEMES ---
+        const THEME_STORAGE_KEY = 'appTheme';
+        const THEMES = [
+            { id: 'paper', name: 'Paper & Lantern' },
+            { id: 'ink', name: 'Calm Ink Wash' },
+            { id: 'studio', name: 'Modern Studio' }
+        ];
 
         // --- KEYBOARD SHORTCUTS ---
         const SHORTCUT_STORAGE_KEY = 'keyboardShortcutsMemoryActivator';
@@ -139,6 +213,7 @@
             const [showHelpModal, setShowHelpModal] = useState(false);
             const [isEditingShortcuts, setIsEditingShortcuts] = useState(false);
             const [shortcuts, setShortcuts] = useState(() => loadShortcuts());
+            const [theme, setTheme] = useState(() => localStorage.getItem(THEME_STORAGE_KEY) || 'paper');
 
             const timerRef = useRef(null);
             const audioRef = useRef(new Audio());
@@ -153,6 +228,11 @@
             useEffect(() => {
                 localStorage.setItem(SHORTCUT_STORAGE_KEY, JSON.stringify(shortcuts));
             }, [shortcuts]);
+
+            useEffect(() => {
+                document.documentElement.setAttribute('data-theme', theme);
+                localStorage.setItem(THEME_STORAGE_KEY, theme);
+            }, [theme]);
 
             // Add keyboard event listener
             useEffect(() => {
@@ -407,7 +487,7 @@
                 <div className="h-screen flex flex-col items-center justify-center p-8 text-center gap-4">
                     <h2 className="text-xl font-bold text-red-600">Error Loading Data</h2>
                     <p className="max-w-md text-slate-600">{error}</p>
-                    <button onClick={() => window.location.reload()} className="px-4 py-2 bg-blue-600 text-white rounded"><Icons.Refresh/> Retry</button>
+                    <button onClick={() => window.location.reload()} className="px-4 py-2 rounded theme-button-primary"><Icons.Refresh/> Retry</button>
                 </div>
             );
 
@@ -423,7 +503,7 @@
                                 onChange={handleFileChange}
                                 className="hidden"
                             />
-                            <div className="px-6 py-4 bg-blue-600 text-white rounded-lg font-medium cursor-pointer inline-block hover:bg-blue-700 transition-colors">
+                            <div className="px-6 py-4 rounded-lg font-medium cursor-pointer inline-block transition-colors theme-button-primary">
                                 Select YAML File
                             </div>
                         </label>
@@ -436,9 +516,9 @@
             const activePhrase = phrases[activePhraseIndex] || {};
 
             return (
-                <div className="flex flex-col h-screen max-w-xl mx-auto bg-white shadow-2xl relative">
+                <div className="flex flex-col h-screen max-w-xl mx-auto theme-shell relative">
                     {/* Header */}
-                    <div className="flex flex-col border-b bg-white z-20">
+                    <div className="flex flex-col border-b theme-border z-20">
                         <div className="flex justify-between items-center p-4 pb-2">
                             <h1 className="font-bold text-xl">Memory Activator</h1>
                             <div className="flex items-center gap-2">
@@ -446,13 +526,17 @@
                                 {status === 'WAITING_RECALL' && <span className="text-xs text-amber-600 font-bold animate-pulse">RECALL TIME</span>}
                                 {status === 'PLAYING_CH' && <span className="text-xs text-green-600 font-bold animate-pulse">CH PLAYING</span>}
                                 {status === 'WAITING_NEXT' && <span className="text-xs text-purple-600 font-bold animate-pulse">PAUSE</span>}
-                                <button onClick={() => setShowHelpModal(true)} className="text-xs px-2 py-1 rounded-full font-bold border border-slate-200 bg-slate-100 hover:bg-slate-200">?</button>
+                                <select value={theme} onChange={(e) => setTheme(e.target.value)} className="text-xs px-2 py-1 rounded-full font-bold theme-chip">
+                                    {THEMES.map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}
+                                </select>
+                                <a href="lesson-creator.html" className="text-xs px-3 py-1 rounded-full font-bold theme-chip">Lesson Creator</a>
+                                <button onClick={() => setShowHelpModal(true)} className="text-xs px-2 py-1 rounded-full font-bold theme-chip">?</button>
                             </div>
                         </div>
                         {/* Category Selector */}
                         <div className="px-4 pb-4 flex items-center gap-2">
                             <select
-                                className="flex-1 p-2 bg-slate-100 rounded-lg font-medium outline-none"
+                                className="flex-1 p-2 rounded-lg font-medium outline-none theme-chip"
                                 value={activeCatIndex}
                                 onChange={(e) => {
                                     stop();
@@ -464,7 +548,7 @@
                                     <option key={idx} value={idx}>{cat.category} ({cat.phrases.length})</option>
                                 ))}
                             </select>
-                            <label className="cursor-pointer bg-blue-600 text-white p-2 rounded-lg font-medium">
+                            <label className="cursor-pointer p-2 rounded-lg font-medium theme-button-primary">
                                 +
                                 <input
                                     type="file"
@@ -477,7 +561,7 @@
                     </div>
 
                     {/* Active Card */}
-                    <div className="bg-blue-50 p-8 flex flex-col items-center justify-center min-h-[240px] text-center gap-3 relative overflow-hidden">
+                    <div className="p-8 flex flex-col items-center justify-center min-h-[240px] text-center gap-3 relative overflow-hidden theme-card">
                          <div className={`transition-all duration-500 ${showCn ? 'opacity-100 blur-0' : 'opacity-0 blur-md'}`}>
                             <h2 className="text-3xl font-bold text-slate-800">{activePhrase.chinese}</h2>
                          </div>
@@ -497,7 +581,7 @@
                     </div>
 
                     {/* Controls */}
-                    <div className="p-4 border-b space-y-4 bg-white z-10 shadow-sm">
+                    <div className="p-4 border-b space-y-4 z-10 shadow-sm theme-card">
                         <div className="grid grid-cols-3 gap-4 text-xs font-bold text-slate-500 text-center">
                             <div>
                                 <label className="block mb-1">LOOPS: <span className="text-blue-600 text-lg">{loops}</span></label>
@@ -535,7 +619,7 @@
 
                         <div className="flex justify-center items-center gap-8 pt-2">
                             <button onClick={prevPhrase} className="text-slate-400 hover:text-slate-600"><Icons.SkipBack /></button>
-                            <button onClick={togglePlay} className={`w-14 h-14 rounded-full flex items-center justify-center shadow-lg transform active:scale-95 transition-all ${isPlaying ? 'bg-amber-100 text-amber-600' : 'bg-blue-600 text-white'}`}>
+                            <button onClick={togglePlay} className={`w-14 h-14 rounded-full flex items-center justify-center shadow-lg transform active:scale-95 transition-all theme-play ${isPlaying ? 'is-playing' : ''}`}>
                                 {isPlaying ? <Icons.Pause /> : <Icons.Play style={{marginLeft:4}} />}
                             </button>
                             <button onClick={nextPhrase} className="text-slate-400 hover:text-slate-600"><Icons.SkipForward /></button>
@@ -557,7 +641,7 @@
 
                     {showHelpModal && (
                         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-                            <div className="bg-white rounded-lg max-w-lg w-full p-6 relative shadow-xl">
+                            <div className="bg-white rounded-lg max-w-lg w-full p-6 relative shadow-xl theme-shell">
                                 <button onClick={() => setShowHelpModal(false)} className="absolute top-3 right-3 text-gray-500 hover:text-gray-700">✕</button>
                                 <div className="flex items-center justify-between mb-3">
                                     <h2 className="text-xl font-bold">Keyboard Shortcuts</h2>

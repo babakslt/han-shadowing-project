@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lesson Creator</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/pinyin-pro@3.18.2/dist/index.js"></script>
+    <style>
+        :root {
+            --bg: linear-gradient(135deg, #f6efe5, #efe3d2);
+            --panel: #fffaf2;
+            --panel-2: #f4e9d8;
+            --text: #2f2620;
+            --muted: #7a6b5b;
+            --border: #e6d5c4;
+            --accent: #c25b2d;
+            --accent-contrast: #fff6ed;
+            --accent-soft: #f6d2bd;
+            --chip: #f0e0cf;
+            --chip-text: #7a5a3c;
+            --shadow: 0 20px 60px rgba(77, 58, 40, 0.18);
+        }
+        [data-theme="paper"] {
+            --bg: linear-gradient(135deg, #f6efe5, #efe3d2);
+            --panel: #fffaf2;
+            --panel-2: #f4e9d8;
+            --text: #2f2620;
+            --muted: #7a6b5b;
+            --border: #e6d5c4;
+            --accent: #c25b2d;
+            --accent-contrast: #fff6ed;
+            --accent-soft: #f6d2bd;
+            --chip: #f0e0cf;
+            --chip-text: #7a5a3c;
+            --shadow: 0 20px 60px rgba(77, 58, 40, 0.18);
+        }
+        [data-theme="ink"] {
+            --bg: linear-gradient(135deg, #f5f7f2, #dde7e2);
+            --panel: #f9fbf8;
+            --panel-2: #eef3f0;
+            --text: #243336;
+            --muted: #5b6b6f;
+            --border: #d3ded8;
+            --accent: #2d4f5d;
+            --accent-contrast: #eef8fb;
+            --accent-soft: #d8e5e2;
+            --chip: #e5efea;
+            --chip-text: #3e575f;
+            --shadow: 0 20px 60px rgba(36, 51, 54, 0.12);
+        }
+        [data-theme="studio"] {
+            --bg: linear-gradient(135deg, #f7f5f2, #e9eef1);
+            --panel: #ffffff;
+            --panel-2: #f3f5f7;
+            --text: #1f2937;
+            --muted: #5b6775;
+            --border: #e2e8f0;
+            --accent: #111827;
+            --accent-contrast: #fef3c7;
+            --accent-soft: #ffe5d5;
+            --chip: #eef2f6;
+            --chip-text: #2c3a4a;
+            --shadow: 0 24px 70px rgba(15, 23, 42, 0.14);
+        }
+        body { background: var(--bg); color: var(--text); }
+        .theme-shell { background: var(--panel); border: 1px solid var(--border); box-shadow: var(--shadow); }
+        .theme-border { border-color: var(--border) !important; }
+        .theme-card { background: var(--panel-2) !important; }
+        .theme-muted { color: var(--muted) !important; }
+        .theme-chip { background: var(--chip); color: var(--chip-text); border: 1px solid var(--border); }
+        .theme-button-primary { background: var(--accent); color: var(--accent-contrast); }
+        .theme-button-primary:hover { filter: brightness(0.95); }
+        .theme-button-soft { background: var(--accent-soft); color: var(--accent); border: 1px solid var(--border); }
+        .theme-button-soft:hover { filter: brightness(0.98); }
+        .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; }
+    </style>
+</head>
+<body>
+    <div class="max-w-6xl mx-auto p-6 md:p-10">
+        <div class="theme-shell rounded-2xl p-6 md:p-10">
+            <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
+                <div>
+                    <h1 class="text-2xl md:text-3xl font-bold">Lesson Creator</h1>
+                    <p class="theme-muted mt-1">Import Chinese + English, generate YAML, then produce audio with `main.py`.</p>
+                </div>
+                <div class="flex items-center gap-2">
+                    <select id="themeSelect" class="text-xs px-2 py-1 rounded-full font-bold theme-chip">
+                        <option value="paper">Paper & Lantern</option>
+                        <option value="ink">Calm Ink Wash</option>
+                        <option value="studio">Modern Studio</option>
+                    </select>
+                    <a href="index.html" class="text-xs px-3 py-1 rounded-full font-bold theme-chip">Back to Player</a>
+                    <a href="memory-activator.html" class="text-xs px-3 py-1 rounded-full font-bold theme-chip">Memory Activator</a>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div class="theme-card rounded-2xl p-5">
+                    <div class="flex items-center justify-between mb-3">
+                        <h2 class="font-bold text-lg">1. Paste Sentences</h2>
+                        <button id="loadExample" class="text-xs px-3 py-1 rounded-full font-bold theme-button-soft">Load Example</button>
+                    </div>
+                    <p class="theme-muted text-sm mb-3">Each line should contain Chinese + English. Optional third column for pinyin. Use CSV or TSV.</p>
+                    <textarea id="inputText" class="w-full h-56 p-3 rounded-lg border theme-border mono text-sm" placeholder="你好,Hello
+早上好,Good morning
+谢谢,Thank you"></textarea>
+                    <div class="flex flex-wrap items-center gap-2 mt-4">
+                        <label class="text-sm font-medium">Category</label>
+                        <input id="categoryName" class="flex-1 p-2 rounded-lg border theme-border" placeholder="Lesson 1 — Greetings" />
+                        <label class="text-xs theme-muted flex items-center gap-1">
+                            <input id="autoPinyin" type="checkbox" class="accent-[var(--accent)]" checked />
+                            Auto Pinyin
+                        </label>
+                        <select id="toneType" class="text-xs px-2 py-1 rounded-full font-bold theme-chip">
+                            <option value="symbol">Tone Marks</option>
+                            <option value="num">Tone Numbers</option>
+                            <option value="none">No Tones</option>
+                        </select>
+                        <button id="parseBtn" class="px-4 py-2 rounded-lg font-semibold theme-button-primary">Parse</button>
+                    </div>
+                    <div id="pinyinStatus" class="mt-2 text-xs theme-muted"></div>
+                    <div class="mt-4 text-xs theme-muted">
+                        Tip: You can paste from spreadsheets. Tabs are supported automatically.
+                    </div>
+                </div>
+
+                <div class="theme-card rounded-2xl p-5">
+                    <h2 class="font-bold text-lg mb-3">2. Review & Export</h2>
+                    <div class="flex items-center gap-2 mb-3">
+                        <span class="text-sm font-medium">Rows:</span>
+                        <span id="rowCount" class="text-sm theme-muted">0</span>
+                    </div>
+                    <div class="border rounded-lg theme-border overflow-hidden">
+                        <table class="w-full text-sm">
+                            <thead class="theme-chip">
+                                <tr>
+                                    <th class="text-left p-2">Chinese</th>
+                                    <th class="text-left p-2">Pinyin (optional)</th>
+                                    <th class="text-left p-2">English</th>
+                                </tr>
+                            </thead>
+                            <tbody id="previewBody" class="bg-white"></tbody>
+                        </table>
+                    </div>
+                    <div class="mt-4">
+                        <label class="text-sm font-medium">YAML Preview</label>
+                        <textarea id="yamlOutput" class="w-full h-48 p-3 rounded-lg border theme-border mono text-xs mt-2" readonly></textarea>
+                    </div>
+                    <div class="flex flex-wrap items-center gap-2 mt-4">
+                        <button id="downloadYaml" class="px-4 py-2 rounded-lg font-semibold theme-button-primary">Download YAML</button>
+                        <button id="copyYaml" class="px-3 py-2 rounded-lg font-semibold theme-button-soft">Copy YAML</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
+                <div class="theme-card rounded-2xl p-5">
+                    <h2 class="font-bold text-lg mb-2">3. Generate Audio Files</h2>
+                    <p class="text-sm theme-muted mb-4">After downloading the YAML, place it in the `yaml/` folder and run:</p>
+                    <div class="flex items-center gap-2">
+                        <div class="flex-1 p-3 rounded-lg border theme-border mono text-sm" id="commandBox">python main.py yaml/your_lesson.yaml</div>
+                        <button id="copyCommand" class="px-3 py-2 rounded-lg font-semibold theme-button-soft">Copy</button>
+                    </div>
+                    <p class="text-xs theme-muted mt-3">This will generate MP3 files into the `audio/` folder.</p>
+                </div>
+                <div class="theme-card rounded-2xl p-5">
+                    <h2 class="font-bold text-lg mb-2">4. Use in Player</h2>
+                    <p class="text-sm theme-muted mb-3">Open `index.html` or `memory-activator.html` and add the YAML with the "+" button.</p>
+                    <div class="flex items-center gap-2">
+                        <a href="index.html" class="px-4 py-2 rounded-lg font-semibold theme-button-primary">Open Player</a>
+                        <a href="memory-activator.html" class="px-4 py-2 rounded-lg font-semibold theme-button-soft">Memory Activator</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const THEME_STORAGE_KEY = 'appTheme';
+        const themeSelect = document.getElementById('themeSelect');
+        const storedTheme = localStorage.getItem(THEME_STORAGE_KEY) || 'paper';
+        document.documentElement.setAttribute('data-theme', storedTheme);
+        themeSelect.value = storedTheme;
+        themeSelect.addEventListener('change', (e) => {
+            document.documentElement.setAttribute('data-theme', e.target.value);
+            localStorage.setItem(THEME_STORAGE_KEY, e.target.value);
+        });
+
+        const inputText = document.getElementById('inputText');
+        const categoryName = document.getElementById('categoryName');
+        const parseBtn = document.getElementById('parseBtn');
+        const previewBody = document.getElementById('previewBody');
+        const yamlOutput = document.getElementById('yamlOutput');
+        const rowCount = document.getElementById('rowCount');
+        const downloadYaml = document.getElementById('downloadYaml');
+        const copyYaml = document.getElementById('copyYaml');
+        const commandBox = document.getElementById('commandBox');
+        const copyCommand = document.getElementById('copyCommand');
+        const loadExample = document.getElementById('loadExample');
+        const autoPinyin = document.getElementById('autoPinyin');
+        const pinyinStatus = document.getElementById('pinyinStatus');
+        const toneType = document.getElementById('toneType');
+
+        const toSafeFilename = (name) => name.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '');
+
+        const parseLine = (line) => {
+            if (!line.trim()) return null;
+            if (line.includes('\t')) {
+                const parts = line.split('\t');
+                return parts.map((p) => p.trim());
+            }
+            const parts = [];
+            let current = '';
+            let inQuotes = false;
+            for (let i = 0; i < line.length; i++) {
+                const char = line[i];
+                if (char === '"' && line[i + 1] === '"') { current += '"'; i++; continue; }
+                if (char === '"') { inQuotes = !inQuotes; continue; }
+                if (char === ',' && !inQuotes) { parts.push(current.trim()); current = ''; continue; }
+                current += char;
+            }
+            parts.push(current.trim());
+            return parts;
+        };
+
+        const buildYaml = (category, rows) => {
+            const cat = category || 'New Lesson';
+            let yaml = `- category: "${cat.replace(/"/g, '\\"')}"\n  phrases:\n`;
+            rows.forEach((row) => {
+                const chinese = (row.chinese || '').replace(/"/g, '\\"');
+                const pinyin = (row.pinyin || '').replace(/"/g, '\\"');
+                const meaning = (row.meaning || '').replace(/"/g, '\\"');
+                yaml += `    - chinese: "${chinese}"\n`;
+                yaml += `      pinyin: "${pinyin}"\n`;
+                yaml += `      meaning: "${meaning}"\n`;
+            });
+            return yaml;
+        };
+
+        const renderPreview = (rows) => {
+            previewBody.innerHTML = '';
+            rows.forEach((row) => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td class="p-2 border-t">${row.chinese || ''}</td>
+                    <td class="p-2 border-t theme-muted">${row.pinyin || ''}</td>
+                    <td class="p-2 border-t">${row.meaning || ''}</td>
+                `;
+                previewBody.appendChild(tr);
+            });
+            rowCount.textContent = rows.length.toString();
+        };
+
+        const parseData = () => {
+            const lines = inputText.value.split('\n').map((line) => line.trim()).filter(Boolean);
+            const rows = [];
+            const usePinyin = autoPinyin.checked && window.pinyinPro && typeof window.pinyinPro.pinyin === 'function';
+            const toneSetting = toneType.value || 'symbol';
+            pinyinStatus.textContent = usePinyin ? `Auto pinyin enabled (${toneSetting}).` : (autoPinyin.checked ? 'Auto pinyin unavailable (library not loaded).' : '');
+            for (const line of lines) {
+                const parts = parseLine(line);
+                if (!parts || parts.length < 2) continue;
+                let pinyinValue = parts.length >= 3 ? parts[1] : '';
+                if (!pinyinValue && usePinyin) {
+                    try {
+                        pinyinValue = window.pinyinPro.pinyin(parts[0], { toneType: toneSetting });
+                    } catch {
+                        pinyinValue = '';
+                    }
+                }
+                rows.push({
+                    chinese: parts[0],
+                    pinyin: pinyinValue,
+                    meaning: parts.length >= 3 ? parts[2] : parts[1]
+                });
+            }
+            const yaml = buildYaml(categoryName.value, rows);
+            yamlOutput.value = yaml;
+            renderPreview(rows);
+
+            const filename = toSafeFilename(categoryName.value || 'lesson') || 'lesson';
+            commandBox.textContent = `python main.py yaml/${filename}.yaml`;
+        };
+
+        parseBtn.addEventListener('click', parseData);
+        loadExample.addEventListener('click', () => {
+            categoryName.value = 'Lesson 1 — Greetings';
+            inputText.value = [
+                '你好,Hello',
+                '早上好,Good morning',
+                '晚上好,Good evening',
+                '谢谢,Thank you',
+                '不客气,You’re welcome'
+            ].join('\n');
+            parseData();
+        });
+
+        downloadYaml.addEventListener('click', () => {
+            const yaml = yamlOutput.value.trim();
+            if (!yaml) return;
+            const filename = toSafeFilename(categoryName.value || 'lesson') || 'lesson';
+            const blob = new Blob([yaml], { type: 'text/yaml;charset=utf-8' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `${filename}.yaml`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        });
+
+        copyYaml.addEventListener('click', async () => {
+            const yaml = yamlOutput.value.trim();
+            if (!yaml) return;
+            await navigator.clipboard.writeText(yaml);
+        });
+
+        copyCommand.addEventListener('click', async () => {
+            await navigator.clipboard.writeText(commandBox.textContent.trim());
+        });
+    </script>
+</body>
+</html>
