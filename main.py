@@ -28,11 +28,11 @@ def load_phrases_from_yaml(yaml_file):
     
     return phrases
 
-def add_ssml_speed(text, rate):
-    """Wraps text in SSML tags to control speaking rate."""
-    # Convert rate to percentage format (e.g., 0.85 becomes "85%")
-    percentage_rate = f"{int(rate * 100)}%"
-    return f'{text}'
+def get_edge_rate(rate):
+    """Convert a float rate (e.g., 0.85) to Edge TTS rate string (e.g., '-15%')."""
+    percent_delta = int(round((rate - 1.0) * 100))
+    sign = "+" if percent_delta >= 0 else ""
+    return f"{sign}{percent_delta}%"
 
 def get_filename(text, category):
     """Generates the same MD5 filename hash as the JavaScript app, in category subfolder."""
@@ -49,9 +49,9 @@ async def generate_audio_for_text(text, lang, output_path):
         # Create directory if it doesn't exist
         os.makedirs(os.path.dirname(output_path), exist_ok=True)
         
-        # Use SSML to control speaking rate
-        ssml_text = add_ssml_speed(text, SPEAKING_RATE)
-        communicate = edge_tts.Communicate(ssml_text, voice, rate = "-15%")
+        # Use Edge TTS rate to control speaking speed
+        rate = get_edge_rate(SPEAKING_RATE)
+        communicate = edge_tts.Communicate(text, voice, rate=rate)
         await communicate.save(output_path)
         return True
     except Exception as e:

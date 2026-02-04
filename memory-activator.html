@@ -174,10 +174,10 @@
             // Handle initial file input
             const handleFileChange = (e) => {
                 const file = e.target.files[0];
-                if (file && file.name.endsWith('.yaml')) {
+                if (file && (file.name.endsWith('.yaml') || file.name.endsWith('.yml'))) {
                     loadYamlFromFile(file);
                 } else {
-                    setError("Please select a valid .yaml file");
+                    setError("Please select a valid .yaml or .yml file");
                 }
             };
 
@@ -205,7 +205,10 @@
                 const currentPhrase = getCurrentPhrase();
                 const categoryName = currentPhrase ? currentPhrase.category || 'default' : 'default';
                 // Normalize category name to be filesystem-friendly (same as in Python script)
-                const safeCategory = categoryName.replace(/[^a-zA-Z0-9 -]/g, '').replace(/\s+/g, '_');
+                const safeCategory = categoryName
+                    .replace(/[^a-zA-Z0-9 _-]/g, '')
+                    .trim()
+                    .replace(/ /g, '_');
 
                 // 1. Try Local File in category subfolder
                 const filename = `audio/${safeCategory}/audio_${md5(text)}.mp3`;

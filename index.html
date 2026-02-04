@@ -200,6 +200,13 @@
             // --- AUDIO ENGINE CORE ---
             const playAudio = async (text, lang, onEnd) => {
                 const audio = audioRef.current;
+
+                const toSafeCategory = (categoryName) => {
+                    return categoryName
+                        .replace(/[^a-zA-Z0-9 _-]/g, '')
+                        .trim()
+                        .replace(/ /g, '_');
+                };
                 
                 // 1. System Fallback (Safe play)
                 const playSystemTTS = () => {
@@ -222,7 +229,7 @@
                 if (lang === 'zh-CN') {
                     const currentPhrase = getCurrentPhrase();
                     const categoryName = currentPhrase ? currentPhrase.category || 'default' : 'default';
-                    const safeCategory = categoryName.replace(/[^a-zA-Z0-9 -]/g, '').replace(/\s+/g, '_');
+                    const safeCategory = toSafeCategory(categoryName);
                     const filename = `audio/${safeCategory}/audio_${md5(text)}.mp3`;
 
                     const tryPlayLocal = (src) => new Promise((resolve, reject) => {
@@ -245,7 +252,7 @@
                     // For English/Others, go directly to system (unless we generate EN files later)
                     const currentPhrase = getCurrentPhrase();
                     const categoryName = currentPhrase ? currentPhrase.category || 'default' : 'default';
-                    const safeCategory = categoryName.replace(/[^a-zA-Z0-9 -]/g, '').replace(/\s+/g, '_');
+                    const safeCategory = toSafeCategory(categoryName);
                     const filename = `audio/${safeCategory}/audio_${md5(text)}.mp3`;
 
                     const tryPlayLocal = (src) => new Promise((resolve, reject) => {
