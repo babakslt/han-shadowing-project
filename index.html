@@ -36,6 +36,7 @@
             --accent-soft: #f6d2bd;
             --chip: #f0e0cf;
             --chip-text: #7a5a3c;
+            --warm: #c25b2d;
             --shadow: 0 20px 60px rgba(77, 58, 40, 0.18);
         }
         [data-theme="paper"] {
@@ -50,6 +51,7 @@
             --accent-soft: #f6d2bd;
             --chip: #f0e0cf;
             --chip-text: #7a5a3c;
+            --warm: #c25b2d;
             --shadow: 0 20px 60px rgba(77, 58, 40, 0.18);
         }
         [data-theme="ink"] {
@@ -64,6 +66,7 @@
             --accent-soft: #d8e5e2;
             --chip: #e5efea;
             --chip-text: #3e575f;
+            --warm: #a35a2b;
             --shadow: 0 20px 60px rgba(36, 51, 54, 0.12);
         }
         [data-theme="studio"] {
@@ -78,7 +81,23 @@
             --accent-soft: #ffe5d5;
             --chip: #eef2f6;
             --chip-text: #2c3a4a;
+            --warm: #b45309;
             --shadow: 0 24px 70px rgba(15, 23, 42, 0.14);
+        }
+        [data-theme="glacier"] {
+            --bg: linear-gradient(135deg, #e9f3ff, #dfe9f7);
+            --panel: #f7fbff;
+            --panel-2: #eef6ff;
+            --text: #1f2a3a;
+            --muted: #5a6d86;
+            --border: #d6e4f5;
+            --accent: #2b6cb0;
+            --accent-contrast: #eef6ff;
+            --accent-soft: #f2d2b6;
+            --chip: #e6f0ff;
+            --chip-text: #334b6b;
+            --warm: #d97745;
+            --shadow: 0 24px 70px rgba(25, 58, 96, 0.16);
         }
         body { background: var(--bg); color: var(--text); }
         .theme-shell { background: var(--panel); border: 1px solid var(--border); box-shadow: var(--shadow); }
@@ -86,6 +105,7 @@
         .theme-card { background: var(--panel-2) !important; }
         .theme-muted { color: var(--muted) !important; }
         .theme-chip { background: var(--chip); color: var(--chip-text); border: 1px solid var(--border); }
+        .theme-warm { color: var(--warm); }
         .theme-button-primary { background: var(--accent); color: var(--accent-contrast); }
         .theme-button-primary:hover { filter: brightness(0.95); }
         .theme-button-soft { background: var(--accent-soft); color: var(--accent); border: 1px solid var(--border); }
@@ -93,6 +113,8 @@
         .theme-play { background: var(--accent); color: var(--accent-contrast); }
         .theme-play.is-playing { background: var(--accent-soft); color: var(--accent); }
         .theme-section-header { background: var(--panel-2); color: var(--muted); }
+        .floating-btn { background: var(--accent); color: var(--accent-contrast); }
+        .floating-panel { background: var(--panel); border: 1px solid var(--border); box-shadow: var(--shadow); }
     </style>
 </head>
 <body class="bg-slate-50 text-slate-800">
@@ -217,7 +239,8 @@
         const THEMES = [
             { id: 'paper', name: 'Paper & Lantern' },
             { id: 'ink', name: 'Calm Ink Wash' },
-            { id: 'studio', name: 'Modern Studio' }
+            { id: 'studio', name: 'Modern Studio' },
+            { id: 'glacier', name: 'Glacier Bright' }
         ];
 
         // --- KEYBOARD SHORTCUTS ---
@@ -350,7 +373,9 @@
             const [isEditingShortcuts, setIsEditingShortcuts] = useState(false);
             const [shortcuts, setShortcuts] = useState(() => loadShortcuts());
             const [theme, setTheme] = useState(() => localStorage.getItem(THEME_STORAGE_KEY) || 'paper');
+            const [showThemePanel, setShowThemePanel] = useState(false);
             const [bookmarkTrigger, setBookmarkTrigger] = useState(0); 
+            const themePanelRef = useRef(null);
 
             const timerRef = useRef(null);
             const audioRef = useRef(new Audio());
@@ -373,6 +398,17 @@
                 document.documentElement.setAttribute('data-theme', theme);
                 localStorage.setItem(THEME_STORAGE_KEY, theme);
             }, [theme]);
+
+            useEffect(() => {
+                if (!showThemePanel) return;
+                const handleClickOutside = (e) => {
+                    if (themePanelRef.current && !themePanelRef.current.contains(e.target)) {
+                        setShowThemePanel(false);
+                    }
+                };
+                document.addEventListener('mousedown', handleClickOutside);
+                return () => document.removeEventListener('mousedown', handleClickOutside);
+            }, [showThemePanel]);
 
             // --- AUDIO ENGINE CORE ---
             const playAudio = async (text, lang, onEnd) => {
@@ -677,9 +713,6 @@
                                             {practiceMode === 'ACTIVE_MEMORY' ? <Icons.Brain /> : <Icons.Layers />}
                                             {practiceMode === 'ACTIVE_MEMORY' ? 'Memory' : 'Shadow'}
                                         </button>
-                                        <select value={theme} onChange={(e) => setTheme(e.target.value)} className="text-xs px-2 py-1 rounded-full font-bold theme-chip">
-                                            {THEMES.map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}
-                                        </select>
                                         <a href="lesson-creator.html" className="text-xs px-3 py-1 rounded-full font-bold theme-chip">Lesson Creator</a>
                                         <button onClick={() => setShowProfileModal(true)} className="text-sm px-3 py-1 rounded-full font-medium theme-chip">Profile</button>
                                     </div>
@@ -708,7 +741,7 @@
                             {/* Active Card */}
                             <div className="flex-1 p-6 flex flex-col items-center justify-center text-center gap-4 relative overflow-hidden min-h-[250px] theme-card">
                                 <div className={`transition-all duration-500 ${showCn ? 'opacity-100 blur-0' : 'opacity-0 blur-md'}`}><h2 className="text-3xl md:text-4xl font-bold text-slate-800 leading-tight">{activePhrase.chinese}</h2></div>
-                                <div className={`transition-all duration-500 ${showPy ? 'opacity-100' : 'opacity-0'}`}><p className="text-xl md:text-2xl text-blue-600 font-medium">{activePhrase.pinyin}</p></div>
+                                <div className={`transition-all duration-500 ${showPy ? 'opacity-100' : 'opacity-0'}`}><p className="text-xl md:text-2xl font-medium theme-warm">{activePhrase.pinyin}</p></div>
                                 <div className={`transition-all duration-500 ${showEn ? 'opacity-100' : 'opacity-0'}`}><p className="text-slate-500 text-lg">{activePhrase.meaning}</p></div>
                                 <div className="absolute top-4 right-4 z-10 flex flex-col gap-2 items-end">
                                     {status === 'PLAYING' && <span className="bg-green-100 text-green-700 text-xs font-bold px-2 py-1 rounded-full border border-green-200 shadow-sm">LOOP {loopCount}/{loops}</span>}
@@ -724,9 +757,9 @@
                             {/* Controls */}
                             <div className="p-4 border-t border-b md:border-b-0 space-y-4 z-10 shadow-sm theme-card">
                                 <div className="grid grid-cols-3 gap-2 md:gap-4 text-xs font-bold text-slate-500 text-center">
-                                    <div><label className="block mb-1">LOOPS: <span className="text-blue-600 text-lg">{loops}</span></label><div className="flex items-center gap-1 justify-center"><button onClick={()=>setLoops(Math.max(1,loops-1))} className="bg-slate-100 w-8 h-8 rounded hover:bg-slate-200">-</button><button onClick={()=>setLoops(Math.min(10,loops+1))} className="bg-slate-100 w-8 h-8 rounded hover:bg-slate-200">+</button></div></div>
-                                    <div><label className="block mb-1">SPEED: <span className="text-blue-600 text-lg">{speed}x</span></label><div className="flex items-center gap-1 justify-center"><button onClick={()=>setSpeed(Math.max(0.5, +(speed-0.1).toFixed(1)))} className="bg-slate-100 w-8 h-8 rounded hover:bg-slate-200 speed-decrease-btn">-</button><button onClick={()=>setSpeed(Math.min(2.0, +(speed+0.1).toFixed(1)))} className="bg-slate-100 w-8 h-8 rounded hover:bg-slate-200 speed-increase-btn">+</button></div></div>
-                                    <div><label className="block mb-1">PAUSE: <span className="text-blue-600 text-lg">{pauseTime}s</span></label><div className="flex items-center gap-1 justify-center"><button onClick={()=>setPauseTime(Math.max(0, +(pauseTime-0.5).toFixed(1)))} className="bg-slate-100 w-8 h-8 rounded hover:bg-slate-200 pause-decrease-btn">-</button><button onClick={()=>setPauseTime(Math.min(10, +(pauseTime+0.5).toFixed(1)))} className="bg-slate-100 w-8 h-8 rounded hover:bg-slate-200 pause-increase-btn">+</button></div></div>
+                                    <div><label className="block mb-1 theme-warm">LOOPS: <span className="text-lg">{loops}</span></label><div className="flex items-center gap-1 justify-center"><button onClick={()=>setLoops(Math.max(1,loops-1))} className="bg-slate-100 w-8 h-8 rounded hover:bg-slate-200">-</button><button onClick={()=>setLoops(Math.min(10,loops+1))} className="bg-slate-100 w-8 h-8 rounded hover:bg-slate-200">+</button></div></div>
+                                    <div><label className="block mb-1 theme-warm">SPEED: <span className="text-lg">{speed}x</span></label><div className="flex items-center gap-1 justify-center"><button onClick={()=>setSpeed(Math.max(0.5, +(speed-0.1).toFixed(1)))} className="bg-slate-100 w-8 h-8 rounded hover:bg-slate-200 speed-decrease-btn">-</button><button onClick={()=>setSpeed(Math.min(2.0, +(speed+0.1).toFixed(1)))} className="bg-slate-100 w-8 h-8 rounded hover:bg-slate-200 speed-increase-btn">+</button></div></div>
+                                    <div><label className="block mb-1 theme-warm">PAUSE: <span className="text-lg">{pauseTime}s</span></label><div className="flex items-center gap-1 justify-center"><button onClick={()=>setPauseTime(Math.max(0, +(pauseTime-0.5).toFixed(1)))} className="bg-slate-100 w-8 h-8 rounded hover:bg-slate-200 pause-decrease-btn">-</button><button onClick={()=>setPauseTime(Math.min(10, +(pauseTime+0.5).toFixed(1)))} className="bg-slate-100 w-8 h-8 rounded hover:bg-slate-200 pause-increase-btn">+</button></div></div>
                                 </div>
                                 <div className="flex justify-center gap-6 py-2 border-t border-slate-100 mt-2">
                                         {[{l:'汉',v:showCn,s:setShowCn,c:'blue'},{l:'PY',v:showPy,s:setShowPy,c:'indigo'},{l:'EN',v:showEn,s:setShowEn,c:'teal'}].map((t,i) => (
@@ -831,6 +864,31 @@
                             </div>
                         </div>
                     )}
+
+                    <div className="fixed bottom-5 right-5 z-40" ref={themePanelRef}>
+                        {showThemePanel && (
+                            <div className="floating-panel rounded-xl p-3 mb-3 w-48">
+                                <div className="text-xs uppercase tracking-wider theme-muted mb-2">Theme</div>
+                                <div className="flex flex-col gap-2">
+                                    {THEMES.map((t) => (
+                                        <button
+                                            key={t.id}
+                                            onClick={() => { setTheme(t.id); setShowThemePanel(false); }}
+                                            className={`text-left text-sm px-3 py-2 rounded-lg border theme-border ${theme === t.id ? 'theme-button-primary' : 'theme-chip'}`}
+                                        >
+                                            {t.name}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+                        <button onClick={() => setShowThemePanel(v => !v)} className="w-12 h-12 rounded-full floating-btn shadow-lg flex items-center justify-center">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                                <path d="M10.325 4.317a1.5 1.5 0 0 1 3.35 0 1.5 1.5 0 0 0 2.18 1.05 1.5 1.5 0 0 1 2.1 2.1 1.5 1.5 0 0 0 1.05 2.18 1.5 1.5 0 0 1 0 3.35 1.5 1.5 0 0 0-1.05 2.18 1.5 1.5 0 0 1-2.1 2.1 1.5 1.5 0 0 0-2.18 1.05 1.5 1.5 0 0 1-3.35 0 1.5 1.5 0 0 0-2.18-1.05 1.5 1.5 0 0 1-2.1-2.1 1.5 1.5 0 0 0-1.05-2.18 1.5 1.5 0 0 1 0-3.35 1.5 1.5 0 0 0 1.05-2.18 1.5 1.5 0 0 1 2.1-2.1 1.5 1.5 0 0 0 2.18-1.05z"></path>
+                                <circle cx="12" cy="12" r="3"></circle>
+                            </svg>
+                        </button>
+                    </div>
                 </div>
             );
         };

@@ -63,6 +63,20 @@
             --chip-text: #2c3a4a;
             --shadow: 0 24px 70px rgba(15, 23, 42, 0.14);
         }
+        [data-theme="glacier"] {
+            --bg: linear-gradient(135deg, #e9f3ff, #dfe9f7);
+            --panel: #f7fbff;
+            --panel-2: #eef6ff;
+            --text: #1f2a3a;
+            --muted: #5a6d86;
+            --border: #d6e4f5;
+            --accent: #2b6cb0;
+            --accent-contrast: #eef6ff;
+            --accent-soft: #f2d2b6;
+            --chip: #e6f0ff;
+            --chip-text: #334b6b;
+            --shadow: 0 24px 70px rgba(25, 58, 96, 0.16);
+        }
         body { background: var(--bg); color: var(--text); }
         .theme-shell { background: var(--panel); border: 1px solid var(--border); box-shadow: var(--shadow); }
         .theme-border { border-color: var(--border) !important; }
@@ -74,6 +88,8 @@
         .theme-button-soft { background: var(--accent-soft); color: var(--accent); border: 1px solid var(--border); }
         .theme-button-soft:hover { filter: brightness(0.98); }
         .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; }
+        .floating-btn { background: var(--accent); color: var(--accent-contrast); }
+        .floating-panel { background: var(--panel); border: 1px solid var(--border); box-shadow: var(--shadow); }
     </style>
 </head>
 <body>
@@ -85,11 +101,6 @@
                     <p class="theme-muted mt-1">Import Chinese + English, generate YAML, then produce audio with `main.py`.</p>
                 </div>
                 <div class="flex items-center gap-2">
-                    <select id="themeSelect" class="text-xs px-2 py-1 rounded-full font-bold theme-chip">
-                        <option value="paper">Paper & Lantern</option>
-                        <option value="ink">Calm Ink Wash</option>
-                        <option value="studio">Modern Studio</option>
-                    </select>
                     <a href="index.html" class="text-xs px-3 py-1 rounded-full font-bold theme-chip">Back to Player</a>
                     <a href="memory-activator.html" class="text-xs px-3 py-1 rounded-full font-bold theme-chip">Memory Activator</a>
                 </div>
@@ -178,14 +189,14 @@
 
     <script>
         const THEME_STORAGE_KEY = 'appTheme';
-        const themeSelect = document.getElementById('themeSelect');
         const storedTheme = localStorage.getItem(THEME_STORAGE_KEY) || 'paper';
         document.documentElement.setAttribute('data-theme', storedTheme);
-        themeSelect.value = storedTheme;
-        themeSelect.addEventListener('change', (e) => {
-            document.documentElement.setAttribute('data-theme', e.target.value);
-            localStorage.setItem(THEME_STORAGE_KEY, e.target.value);
-        });
+        const THEMES = [
+            { id: 'paper', name: 'Paper & Lantern' },
+            { id: 'ink', name: 'Calm Ink Wash' },
+            { id: 'studio', name: 'Modern Studio' },
+            { id: 'glacier', name: 'Glacier Bright' }
+        ];
 
         const inputText = document.getElementById('inputText');
         const categoryName = document.getElementById('categoryName');
@@ -201,6 +212,49 @@
         const autoPinyin = document.getElementById('autoPinyin');
         const pinyinStatus = document.getElementById('pinyinStatus');
         const toneType = document.getElementById('toneType');
+
+        const themePanel = document.createElement('div');
+        themePanel.className = 'fixed bottom-5 right-5 z-40';
+        themePanel.innerHTML = `
+            <div id="themePanel" class="floating-panel rounded-xl p-3 mb-3 w-48 hidden">
+                <div class="text-xs uppercase tracking-wider theme-muted mb-2">Theme</div>
+                <div id="themeOptions" class="flex flex-col gap-2"></div>
+            </div>
+            <button id="themeToggle" class="w-12 h-12 rounded-full floating-btn shadow-lg flex items-center justify-center">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M10.325 4.317a1.5 1.5 0 0 1 3.35 0 1.5 1.5 0 0 0 2.18 1.05 1.5 1.5 0 0 1 2.1 2.1 1.5 1.5 0 0 0 1.05 2.18 1.5 1.5 0 0 1 0 3.35 1.5 1.5 0 0 0-1.05 2.18 1.5 1.5 0 0 1-2.1 2.1 1.5 1.5 0 0 0-2.18 1.05 1.5 1.5 0 0 1-3.35 0 1.5 1.5 0 0 0-2.18-1.05 1.5 1.5 0 0 1-2.1-2.1 1.5 1.5 0 0 0-1.05-2.18 1.5 1.5 0 0 1 0-3.35 1.5 1.5 0 0 0 1.05-2.18 1.5 1.5 0 0 1 2.1-2.1 1.5 1.5 0 0 0 2.18-1.05z"></path>
+                    <circle cx="12" cy="12" r="3"></circle>
+                </svg>
+            </button>
+        `;
+        document.body.appendChild(themePanel);
+        const themeToggle = document.getElementById('themeToggle');
+        const themePanelEl = document.getElementById('themePanel');
+        const themeOptions = document.getElementById('themeOptions');
+        const renderThemes = (current) => {
+            themeOptions.innerHTML = '';
+            THEMES.forEach((t) => {
+                const btn = document.createElement('button');
+                btn.className = `text-left text-sm px-3 py-2 rounded-lg border theme-border ${current === t.id ? 'theme-button-primary' : 'theme-chip'}`;
+                btn.textContent = t.name;
+                btn.addEventListener('click', () => {
+                    document.documentElement.setAttribute('data-theme', t.id);
+                    localStorage.setItem(THEME_STORAGE_KEY, t.id);
+                    themePanelEl.classList.add('hidden');
+                });
+                themeOptions.appendChild(btn);
+            });
+        };
+        renderThemes(storedTheme);
+        themeToggle.addEventListener('click', () => {
+            themePanelEl.classList.toggle('hidden');
+        });
+        document.addEventListener('mousedown', (e) => {
+            if (themePanelEl.classList.contains('hidden')) return;
+            if (!themePanel.contains(e.target)) {
+                themePanelEl.classList.add('hidden');
+            }
+        });
 
         const toSafeFilename = (name) => name.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '');
 
