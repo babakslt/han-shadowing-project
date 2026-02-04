@@ -99,6 +99,81 @@
             --warm: #d97745;
             --shadow: 0 24px 70px rgba(25, 58, 96, 0.16);
         }
+        [data-theme="neon_dusk"] {
+            --bg: #eef9ff;
+            --panel: #eef9ff;
+            --panel-2: #ffffff;
+            --text: #090029;
+            --muted: #200fda;
+            --border: #cfe8f7;
+            --accent: #200fda;
+            --accent-contrast: #eef9ff;
+            --accent-soft: #d9ffdf;
+            --chip: #eef9ff;
+            --chip-text: #090029;
+            --warm: #ff6600;
+            --shadow: 0 24px 70px rgba(9, 0, 41, 0.16);
+        }
+        [data-theme="crimson_sand"] {
+            --bg: #fdf0d5;
+            --panel: #fdf0d5;
+            --panel-2: #fff6e3;
+            --text: #780000;
+            --muted: #003049;
+            --border: #ead6b0;
+            --accent: #c1121f;
+            --accent-contrast: #fdf0d5;
+            --accent-soft: #f7d6c5;
+            --chip: #f7e6c8;
+            --chip-text: #003049;
+            --warm: #c1121f;
+            --shadow: 0 24px 70px rgba(120, 0, 0, 0.14);
+        }
+        [data-theme="ember_circuit"] {
+            --bg: #ffb000;
+            --panel: #fff3d1;
+            --panel-2: #ffe7b0;
+            --text: #863c00;
+            --muted: #c93131;
+            --border: #f2c879;
+            --accent: #a4031f;
+            --accent-contrast: #fff3d1;
+            --accent-soft: #ffd7b0;
+            --chip: #ffe0b6;
+            --chip-text: #863c00;
+            --warm: #c93131;
+            --shadow: 0 24px 70px rgba(134, 60, 0, 0.18);
+        }
+        [data-theme="blue_gold"] {
+            --bg: #00296b;
+            --panel: #003f88;
+            --panel-2: #00509d;
+            --text: #ffd500;
+            --muted: #fdc500;
+            --border: #00448f;
+            --accent: #ffd500;
+            --accent-contrast: #00296b;
+            --accent-soft: #fdc500;
+            --chip: #003f88;
+            --chip-text: #ffd500;
+            --warm: #fdc500;
+            --shadow: 0 24px 70px rgba(0, 41, 107, 0.25);
+        }
+        [data-theme="teal_terracotta"] {
+            --bg: #edddd4;
+            --panel: #ffffff;
+            --panel-2: #f3e9e2;
+            --text: #283d3b;
+            --muted: #197278;
+            --border: #d8cfc8;
+            --accent: #197278;
+            --accent-contrast: #edddd4;
+            --accent-soft: #e7c3b8;
+            --chip: #edddd4;
+            --chip-text: #283d3b;
+            --warm: #c44536;
+            --shadow: 0 24px 70px rgba(40, 61, 59, 0.16);
+        }
         body { background: var(--bg); color: var(--text); }
         .theme-shell { background: var(--panel); border: 1px solid var(--border); box-shadow: var(--shadow); }
         .theme-border { border-color: var(--border) !important; }
@@ -115,6 +190,17 @@
         .theme-section-header { background: var(--panel-2); color: var(--muted); }
         .floating-btn { background: var(--accent); color: var(--accent-contrast); }
         .floating-panel { background: var(--panel); border: 1px solid var(--border); box-shadow: var(--shadow); }
+        .active-card { container-type: inline-size; }
+        .phrase-text { font-size: clamp(1.6rem, 7cqw, 3.6rem); }
+        .pinyin-text { font-size: clamp(1.1rem, 4.2cqw, 2.4rem); }
+        .meaning-text { font-size: clamp(0.95rem, 3.2cqw, 1.6rem); }
+        .progress-ring {
+            width: 72px;
+            height: 72px;
+        }
+        .progress-ring svg {
+            transform: rotate(-90deg);
+        }
     </style>
 </head>
 <body class="bg-slate-50 text-slate-800">
@@ -138,6 +224,8 @@
                     }));
                 }
                 if (!localStorage.getItem('phraseProgress')) localStorage.setItem('phraseProgress', JSON.stringify({}));
+                if (!localStorage.getItem('memoryRepeatCounts')) localStorage.setItem('memoryRepeatCounts', JSON.stringify({}));
+                if (!localStorage.getItem('memoryRepeatTarget')) localStorage.setItem('memoryRepeatTarget', JSON.stringify(50));
             },
             getUserProfile: () => JSON.parse(localStorage.getItem('userProfile') || '{}'),
             updateUserProfile: (updates) => {
@@ -152,6 +240,10 @@
             saveProgressData: (data) => localStorage.setItem('progressData', JSON.stringify(data)),
             savePhraseProgress: (data) => localStorage.setItem('phraseProgress', JSON.stringify(data)),
             saveBookmarks: (bookmarks) => localStorage.setItem('bookmarks', JSON.stringify(bookmarks)),
+            getMemoryRepeatCounts: () => JSON.parse(localStorage.getItem('memoryRepeatCounts') || '{}'),
+            saveMemoryRepeatCounts: (data) => localStorage.setItem('memoryRepeatCounts', JSON.stringify(data)),
+            getMemoryRepeatTarget: () => parseInt(localStorage.getItem('memoryRepeatTarget') || '50', 10),
+            setMemoryRepeatTarget: (target) => localStorage.setItem('memoryRepeatTarget', JSON.stringify(target)),
             
             updateCategoryProgress: (categoryId) => {
                 const progressData = ProgressService.getProgressData();
@@ -210,12 +302,26 @@
                 const phraseKey = `${phrase.category}__${phrase.chinese}__${phrase.pinyin}`;
                 return bookmarks.some(b => b.key === phraseKey);
             },
+            getMemoryRepeatCount: (phrase) => {
+                const counts = ProgressService.getMemoryRepeatCounts();
+                const phraseKey = `${phrase.category}__${phrase.chinese}__${phrase.pinyin}`;
+                return counts[phraseKey] || 0;
+            },
+            incrementMemoryRepeat: (phrase) => {
+                const counts = ProgressService.getMemoryRepeatCounts();
+                const phraseKey = `${phrase.category}__${phrase.chinese}__${phrase.pinyin}`;
+                counts[phraseKey] = (counts[phraseKey] || 0) + 1;
+                ProgressService.saveMemoryRepeatCounts(counts);
+                return counts[phraseKey];
+            },
 
             resetAllProgress: () => {
                 localStorage.removeItem('progressData');
                 localStorage.removeItem('phraseProgress');
                 localStorage.removeItem('bookmarks');
                 localStorage.removeItem('userProfile');
+                localStorage.removeItem('memoryRepeatCounts');
+                localStorage.removeItem('memoryRepeatTarget');
                 ProgressService.init();
             }
         };
@@ -237,10 +343,15 @@
         // --- THEMES ---
         const THEME_STORAGE_KEY = 'appTheme';
         const THEMES = [
-            { id: 'paper', name: 'Paper & Lantern' },
-            { id: 'ink', name: 'Calm Ink Wash' },
-            { id: 'studio', name: 'Modern Studio' },
-            { id: 'glacier', name: 'Glacier Bright' }
+            { id: 'paper', name: 'Paper & Lantern', swatch: '#c25b2d' },
+            { id: 'ink', name: 'Calm Ink Wash', swatch: '#2d4f5d' },
+            { id: 'studio', name: 'Modern Studio', swatch: '#111827' },
+            { id: 'glacier', name: 'Glacier Bright', swatch: '#2b6cb0' },
+            { id: 'neon_dusk', name: 'Neon Dusk', swatch: '#200fda' },
+            { id: 'crimson_sand', name: 'Crimson Sand', swatch: '#c1121f' },
+            { id: 'ember_circuit', name: 'Ember Circuit', swatch: '#a4031f' },
+            { id: 'blue_gold', name: 'Blue Gold', swatch: '#ffd500' },
+            { id: 'teal_terracotta', name: 'Teal Terracotta', swatch: '#197278' }
         ];
 
         // --- KEYBOARD SHORTCUTS ---
@@ -374,11 +485,14 @@
             const [shortcuts, setShortcuts] = useState(() => loadShortcuts());
             const [theme, setTheme] = useState(() => localStorage.getItem(THEME_STORAGE_KEY) || 'paper');
             const [showThemePanel, setShowThemePanel] = useState(false);
+            const [showBookmarksOnly, setShowBookmarksOnly] = useState(false);
             const [bookmarkTrigger, setBookmarkTrigger] = useState(0); 
+            const [memoryRepeatTarget, setMemoryRepeatTargetState] = useState(() => ProgressService.getMemoryRepeatTarget());
             const themePanelRef = useRef(null);
 
             const timerRef = useRef(null);
             const audioRef = useRef(new Audio());
+            const audioDurationCacheRef = useRef(new Map());
             // Track current step in the template sequence
             const seqStepRef = useRef(0); 
             
@@ -400,6 +514,17 @@
             }, [theme]);
 
             useEffect(() => {
+                ProgressService.setMemoryRepeatTarget(memoryRepeatTarget);
+            }, [memoryRepeatTarget]);
+
+            useEffect(() => {
+                const params = new URLSearchParams(window.location.search);
+                const mode = (params.get('mode') || '').toLowerCase();
+                if (mode === 'memory') setPracticeMode('ACTIVE_MEMORY');
+                if (mode === 'shadow') setPracticeMode('SHADOWING');
+            }, []);
+
+            useEffect(() => {
                 if (!showThemePanel) return;
                 const handleClickOutside = (e) => {
                     if (themePanelRef.current && !themePanelRef.current.contains(e.target)) {
@@ -411,6 +536,44 @@
             }, [showThemePanel]);
 
             // --- AUDIO ENGINE CORE ---
+            const estimateDuration = (text, lang, rate) => {
+                const clean = (text || '').trim();
+                if (!clean) return 0.8;
+                const base = lang === 'zh-CN' ? 0.28 : 0.18;
+                const perChar = Math.max(0.12, base / Math.max(rate || 1, 0.5));
+                return Math.min(12, Math.max(0.8, clean.length * perChar + 0.6));
+            };
+
+            const getAudioCacheKey = (text, lang) => `${lang}__${md5(text || '')}`;
+
+            const cacheDuration = (text, lang, duration) => {
+                if (!text || !lang || !duration || !Number.isFinite(duration)) return;
+                audioDurationCacheRef.current.set(getAudioCacheKey(text, lang), duration);
+            };
+
+            const getCachedDuration = (text, lang) => audioDurationCacheRef.current.get(getAudioCacheKey(text, lang));
+
+            const prefetchLocalDuration = (src, text, lang) => {
+                if (!src || getCachedDuration(text, lang)) return;
+                const a = new Audio();
+                a.src = src;
+                a.preload = 'metadata';
+                a.onloadedmetadata = () => cacheDuration(text, lang, a.duration);
+            };
+
+            const getNextAudioDuration = (template, stepIndex, phrase) => {
+                if (!phrase || !template) return 1.0;
+                for (let i = stepIndex + 1; i < template.length; i++) {
+                    if (template[i].type === 'AUDIO') {
+                        const nextText = phrase[template[i].field];
+                        const nextLang = template[i].lang;
+                        return getCachedDuration(nextText, nextLang) || estimateDuration(nextText, nextLang, stateRef.current.speed);
+                    }
+                }
+                const fallbackText = phrase.chinese || '';
+                return getCachedDuration(fallbackText, 'zh-CN') || estimateDuration(fallbackText, 'zh-CN', stateRef.current.speed);
+            };
+
             const playAudio = async (text, lang, onEnd) => {
                 const audio = audioRef.current;
                 
@@ -437,10 +600,12 @@
                     const categoryName = currentPhrase ? currentPhrase.category || 'default' : 'default';
                     const safeCategory = toSafeCategory(categoryName);
                     const filename = `audio/${safeCategory}/audio_${md5(text)}.mp3`;
+                    prefetchLocalDuration(filename, text, lang);
 
                     const tryPlayLocal = (src) => new Promise((resolve, reject) => {
                         audio.src = src;
                         audio.playbackRate = stateRef.current.speed;
+                        audio.onloadedmetadata = () => cacheDuration(text, lang, audio.duration);
                         audio.onended = () => resolve();
                         audio.onerror = (e) => reject(e);
                         audio.play().catch(reject);
@@ -460,10 +625,12 @@
                     const categoryName = currentPhrase ? currentPhrase.category || 'default' : 'default';
                     const safeCategory = toSafeCategory(categoryName);
                     const filename = `audio/${safeCategory}/audio_${md5(text)}.mp3`;
+                    prefetchLocalDuration(filename, text, lang);
 
                     const tryPlayLocal = (src) => new Promise((resolve, reject) => {
                         audio.src = src;
                         audio.playbackRate = stateRef.current.speed;
+                        audio.onloadedmetadata = () => cacheDuration(text, lang, audio.duration);
                         audio.onended = () => resolve();
                         audio.onerror = (e) => reject(e);
                         audio.play().catch(reject);
@@ -475,6 +642,7 @@
                         onEnd();
                     } catch (e) {
                         // Local failed, fallback to system
+                        cacheDuration(text, lang, estimateDuration(text, lang, stateRef.current.speed));
                         playSystemTTS();
                     }
                 }
@@ -524,6 +692,9 @@
                         const categoryName = phrase.category || `Category ${activeCatIndex}`;
                         ProgressService.updateCategoryProgress(categoryName);
                         ProgressService.updatePhraseProgress(phrase);
+                        if (stateRef.current.practiceMode === 'ACTIVE_MEMORY') {
+                            ProgressService.incrementMemoryRepeat(phrase);
+                        }
                     }
 
                     playAudio(textToPlay, currentStep.lang, () => {
@@ -533,11 +704,12 @@
                     });
 
                 } else if (currentStep.type === 'PAUSE') {
+                    const dynamicPause = getNextAudioDuration(template, stepIndex, phrase) + stateRef.current.pauseTime;
                     timerRef.current = setTimeout(() => {
                         if (!stateRef.current.isPlaying) return;
                         seqStepRef.current += 1;
                         executeSequenceStep();
-                    }, stateRef.current.pauseTime * 1000);
+                    }, dynamicPause * 1000);
                 }
             };
 
@@ -559,6 +731,28 @@
 
             const nextPhrase = () => {
                 stopInternal();
+                if (showBookmarksOnly) {
+                    const bookmarks = ProgressService.getBookmarks()
+                        .map((b) => ({ ...b.phrase, _key: b.key, _timestamp: b.timestamp }))
+                        .map((p) => ({ ...p, _location: findPhraseLocation(p) }))
+                        .filter((p) => p._location);
+                    const currentIndex = bookmarks.findIndex(
+                        (b) =>
+                            b._location.catIndex === stateRef.current.activeCatIndex &&
+                            b._location.phraseIndex === stateRef.current.activePhraseIndex
+                    );
+                    const nextItem = bookmarks[currentIndex + 1];
+                    if (nextItem && nextItem._location) {
+                        setActiveCatIndex(nextItem._location.catIndex);
+                        setActivePhraseIndex(nextItem._location.phraseIndex);
+                        setLoopCount(1);
+                        stateRef.current.activeCatIndex = nextItem._location.catIndex;
+                        stateRef.current.activePhraseIndex = nextItem._location.phraseIndex;
+                        stateRef.current.loopCount = 1;
+                        if (stateRef.current.isPlaying) setTimeout(playSequence, 50);
+                    }
+                    return;
+                }
                 const currentCat = data[stateRef.current.activeCatIndex];
                 const nextIdx = stateRef.current.activePhraseIndex + 1;
                 if (nextIdx < currentCat.phrases.length) {
@@ -571,6 +765,25 @@
             };
 
             const prevPhrase = () => {
+                if (showBookmarksOnly) {
+                    const bookmarks = ProgressService.getBookmarks()
+                        .map((b) => ({ ...b.phrase, _key: b.key, _timestamp: b.timestamp }))
+                        .map((p) => ({ ...p, _location: findPhraseLocation(p) }))
+                        .filter((p) => p._location);
+                    const currentIndex = bookmarks.findIndex(
+                        (b) =>
+                            b._location.catIndex === activeCatIndex &&
+                            b._location.phraseIndex === activePhraseIndex
+                    );
+                    const prevItem = bookmarks[currentIndex - 1];
+                    if (prevItem && prevItem._location) {
+                        stop();
+                        setActiveCatIndex(prevItem._location.catIndex);
+                        setActivePhraseIndex(prevItem._location.phraseIndex);
+                        setLoopCount(1);
+                    }
+                    return;
+                }
                 const prev = Math.max(0, activePhraseIndex - 1);
                 setActivePhraseIndex(prev);
                 setLoopCount(1);
@@ -641,7 +854,22 @@
                 if (phrase) phrase.category = data[stateRef.current.activeCatIndex].category;
                 return phrase;
             };
-            const getPhrasesInCat = () => data[activeCatIndex] ? data[activeCatIndex].phrases : [];
+            const getPhrasesInCat = () => {
+                if (!data[activeCatIndex]) return [];
+                const categoryName = data[activeCatIndex].category;
+                return data[activeCatIndex].phrases.map((p) => ({ ...p, category: categoryName }));
+            };
+            const findPhraseLocation = (phrase) => {
+                if (!phrase) return null;
+                for (let c = 0; c < data.length; c++) {
+                    const cat = data[c];
+                    const matchCategory = phrase.category ? cat.category === phrase.category : true;
+                    if (!matchCategory) continue;
+                    const idx = cat.phrases.findIndex((p) => p.chinese === phrase.chinese && p.pinyin === phrase.pinyin);
+                    if (idx >= 0) return { catIndex: c, phraseIndex: idx };
+                }
+                return null;
+            };
             const toggleBookmarkForCurrentPhrase = () => {
                 const phrase = getCurrentPhrase();
                 if (phrase) { ProgressService.toggleBookmark(phrase); setBookmarkTrigger(prev => prev + 1); }
@@ -685,28 +913,62 @@
             // Scroll Ref
             const listRef = useRef(null);
             useEffect(() => {
-                if(listRef.current && listRef.current.children[activePhraseIndex]) {
-                    listRef.current.children[activePhraseIndex].scrollIntoView({ behavior: 'smooth', block: 'center' });
+                if (!listRef.current) return;
+                const children = listRef.current.children;
+                if (showBookmarksOnly) {
+                    const bookmarks = ProgressService.getBookmarks()
+                        .map((b) => ({ ...b.phrase, _key: b.key, _timestamp: b.timestamp }))
+                        .map((p) => ({ ...p, _location: findPhraseLocation(p) }))
+                        .filter((p) => p._location);
+                    const currentIndex = bookmarks.findIndex(
+                        (b) =>
+                            b._location.catIndex === activeCatIndex &&
+                            b._location.phraseIndex === activePhraseIndex
+                    );
+                    if (currentIndex >= 0 && children[currentIndex]) {
+                        children[currentIndex].scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    }
+                } else if (children[activePhraseIndex]) {
+                    children[activePhraseIndex].scrollIntoView({ behavior: 'smooth', block: 'center' });
                 }
-            }, [activePhraseIndex]);
+            }, [activePhraseIndex, activeCatIndex, showBookmarksOnly]);
 
             if (error) return <div className="h-screen flex flex-col items-center justify-center p-8 text-center gap-4"><h2 className="text-xl font-bold text-red-600">Error</h2><p>{error}</p><button onClick={() => window.location.reload()} className="px-4 py-2 rounded theme-button-primary">Retry</button></div>;
             if (!fileLoaded) return <div className="h-screen flex flex-col items-center justify-center p-8 text-center gap-6"><h1 className="text-2xl font-bold text-slate-800">Mandarin Shadowing App</h1><div className="max-w-md"><p className="mb-4 text-slate-600">Upload your YAML file to begin</p><label className="block"><input type="file" accept=".yaml,.yml" onChange={handleFileChange} className="hidden" /><div className="px-6 py-4 rounded-lg font-medium cursor-pointer inline-block transition-colors theme-button-primary">Select YAML File</div></label><p className="mt-4 text-sm text-slate-500">The app will use pre-generated audio files from the 'audio' folder</p></div></div>;
 
             const phrases = getPhrasesInCat();
+            const bookmarks = ProgressService.getBookmarks();
+            const bookmarkItems = bookmarks
+                .map((b) => ({ ...b.phrase, _key: b.key, _timestamp: b.timestamp }))
+                .map((p) => ({ ...p, _location: findPhraseLocation(p) }))
+                .filter((p) => p._location);
             const activePhrase = phrases[activePhraseIndex] || {};
+            const memoryRepeatCount = activePhrase.category ? ProgressService.getMemoryRepeatCount(activePhrase) : 0;
+            const memoryRepeatPercent = Math.min(1, memoryRepeatCount / Math.max(memoryRepeatTarget, 1));
+            const ringRadius = 26;
+            const ringCirc = 2 * Math.PI * ringRadius;
+            const ringOffset = ringCirc - ringCirc * memoryRepeatPercent;
 
             return (
                 <div className="h-screen w-full flex flex-col md:p-8"> 
                     <div className="flex-1 flex flex-col md:flex-row theme-shell md:rounded-2xl overflow-hidden max-w-7xl mx-auto w-full">
                         {/* LEFT COLUMN */}
-                        <div className="md:w-5/12 lg:w-1/3 flex flex-col h-full border-r theme-border z-10 shadow-lg md:shadow-none">
+                        <div className="md:w-7/12 lg:w-2/3 flex flex-col h-full border-r theme-border z-10 shadow-lg md:shadow-none">
                             <div className="flex flex-col border-b theme-border z-20">
                                 <div className="flex justify-between items-center p-4 pb-2">
                                     <h1 className="font-bold text-xl">Shadowing App</h1>
                                     <div className="flex items-center gap-2">
                                         <button 
-                                            onClick={() => { stop(); setPracticeMode(m => m === 'SHADOWING' ? 'ACTIVE_MEMORY' : 'SHADOWING'); }}
+                                            onClick={() => { 
+                                                stop(); 
+                                                setPracticeMode(m => {
+                                                    const next = m === 'SHADOWING' ? 'ACTIVE_MEMORY' : 'SHADOWING';
+                                                    const params = new URLSearchParams(window.location.search);
+                                                    params.set('mode', next === 'ACTIVE_MEMORY' ? 'memory' : 'shadow');
+                                                    window.history.replaceState({}, '', `${window.location.pathname}?${params.toString()}`);
+                                                    return next;
+                                                }); 
+                                            }}
                                             className={`text-xs px-3 py-1 rounded-full font-bold flex items-center gap-1 border theme-chip`}
                                             title="Switch Practice Mode"
                                         >
@@ -717,32 +979,47 @@
                                         <button onClick={() => setShowProfileModal(true)} className="text-sm px-3 py-1 rounded-full font-medium theme-chip">Profile</button>
                                     </div>
                                 </div>
-                                <div className="px-4 pb-2 flex items-center gap-2">
-                                    <select className="flex-1 p-2 rounded-lg font-medium outline-none truncate theme-chip" value={activeCatIndex} onChange={(e) => { stop(); setActiveCatIndex(Number(e.target.value)); setActivePhraseIndex(0); }}>
-                                        {data.map((cat, idx) => {
-                                            const progress = ProgressService.getCategoryProgress(cat.category);
-                                            const percentage = Math.round((progress.times_practiced / progress.target_practices) * 100);
-                                            return <option key={idx} value={idx}>{cat.category} ({percentage}%)</option>
-                                        })}
-                                    </select>
-                                    <label className="cursor-pointer p-2 rounded-lg font-medium theme-button-primary">+ <input type="file" accept=".yaml,.yml" onChange={(e) => handleNewYamlFile(e)} className="hidden" /></label>
-                                </div>
-                                {data[activeCatIndex] && (
-                                    <div className="px-4 pb-4">
-                                        <div className="flex items-center gap-2 mb-2 justify-between">
-                                            <div className="flex items-center gap-2"><span className="text-sm font-medium theme-muted">Target:</span><input type="number" min="1" max="100" value={ProgressService.getCategoryProgress(data[activeCatIndex].category).target_practices} onChange={(e) => { const newTarget = parseInt(e.target.value) || 10; ProgressService.setTargetPractices(data[activeCatIndex].category, newTarget); setBookmarkTrigger(prev => prev + 1); }} className="w-16 p-1 border rounded text-sm theme-border" /></div>
-                                            <div className="text-xs theme-muted">{ProgressService.getCategoryProgress(data[activeCatIndex].category).times_practiced} / {ProgressService.getCategoryProgress(data[activeCatIndex].category).target_practices}</div>
-                                        </div>
-                                        <div className="w-full rounded-full h-2 theme-chip"><div className="bg-green-500 h-2 rounded-full transition-all duration-500" style={{ width: `${Math.min(100, (ProgressService.getCategoryProgress(data[activeCatIndex].category).times_practiced / ProgressService.getCategoryProgress(data[activeCatIndex].category).target_practices) * 100)}%` }}></div></div>
-                                    </div>
-                                )}
                             </div>
 
                             {/* Active Card */}
-                            <div className="flex-1 p-6 flex flex-col items-center justify-center text-center gap-4 relative overflow-hidden min-h-[250px] theme-card">
-                                <div className={`transition-all duration-500 ${showCn ? 'opacity-100 blur-0' : 'opacity-0 blur-md'}`}><h2 className="text-3xl md:text-4xl font-bold text-slate-800 leading-tight">{activePhrase.chinese}</h2></div>
-                                <div className={`transition-all duration-500 ${showPy ? 'opacity-100' : 'opacity-0'}`}><p className="text-xl md:text-2xl font-medium theme-warm">{activePhrase.pinyin}</p></div>
-                                <div className={`transition-all duration-500 ${showEn ? 'opacity-100' : 'opacity-0'}`}><p className="text-slate-500 text-lg">{activePhrase.meaning}</p></div>
+                            <div className="flex-1 p-6 flex flex-col items-center justify-center text-center gap-4 relative overflow-hidden min-h-[250px] theme-card active-card">
+                                {practiceMode === 'ACTIVE_MEMORY' && (
+                                    <button
+                                        onClick={() => {
+                                            const next = prompt('Set memory repeat target (per sentence):', memoryRepeatTarget.toString());
+                                            if (next === null) return;
+                                            const parsed = parseInt(next, 10);
+                                            if (!Number.isFinite(parsed) || parsed <= 0) return;
+                                            setMemoryRepeatTargetState(parsed);
+                                        }}
+                                        className="absolute top-6 left-6 progress-ring rounded-full p-0 flex items-center justify-center"
+                                        title="Memory repeat target"
+                                    >
+                                        <div className="relative w-full h-full flex items-center justify-center">
+                                            <svg width="72" height="72">
+                                                <circle cx="36" cy="36" r={ringRadius} stroke="var(--border)" strokeWidth="0" fill="none"></circle>
+                                                <circle
+                                                    cx="36"
+                                                    cy="36"
+                                                    r={ringRadius}
+                                                    stroke="var(--accent)"
+                                                    strokeWidth="6"
+                                                    fill="none"
+                                                    strokeDasharray={ringCirc}
+                                                    strokeDashoffset={ringOffset}
+                                                    strokeLinecap="round"
+                                                ></circle>
+                                            </svg>
+                                            <div className="absolute inset-0 flex flex-col items-center justify-center text-[10px]">
+                                                <div className="font-bold">{Math.round(memoryRepeatPercent * 100)}%</div>
+                                                <div className="theme-muted">{memoryRepeatCount}/{memoryRepeatTarget}</div>
+                                            </div>
+                                        </div>
+                                    </button>
+                                )}
+                                <div className={`transition-all duration-500 ${showCn ? 'opacity-100 blur-0' : 'opacity-0 blur-md'}`}><h2 className="font-bold text-slate-800 leading-tight phrase-text">{activePhrase.chinese}</h2></div>
+                                <div className={`transition-all duration-500 ${showPy ? 'opacity-100' : 'opacity-0'}`}><p className="font-medium theme-warm pinyin-text">{activePhrase.pinyin}</p></div>
+                                <div className={`transition-all duration-500 ${showEn ? 'opacity-100' : 'opacity-0'}`}><p className="text-slate-500 meaning-text">{activePhrase.meaning}</p></div>
                                 <div className="absolute top-4 right-4 z-10 flex flex-col gap-2 items-end">
                                     {status === 'PLAYING' && <span className="bg-green-100 text-green-700 text-xs font-bold px-2 py-1 rounded-full border border-green-200 shadow-sm">LOOP {loopCount}/{loops}</span>}
                                     {status === 'WAITING' && <span className="bg-amber-100 text-amber-700 text-xs font-bold px-2 py-1 rounded-full border border-amber-200 shadow-sm animate-pulse">SPEAK</span>}
@@ -766,7 +1043,7 @@
                                             <button key={i} onClick={()=>t.s(!t.v)} className={`flex items-center gap-2 text-sm font-bold ${t.v?`text-${t.c}-600`:'text-slate-300'}`}><div className={`w-4 h-4 rounded-full border-2 ${t.v?`bg-${t.c}-600 border-${t.c}-600`:'border-slate-300'}`}></div>{t.l}</button>
                                         ))}
                                 </div>
-                                <div className="flex justify-center items-center gap-8 pt-2">
+                                <div className="flex justify-center items-center gap-4 pt-2 flex-wrap">
                                     <button onClick={prevPhrase} className="text-slate-400 hover:text-slate-600 p-2 rounded-full hover:bg-slate-100"><Icons.SkipBack /></button>
                                     <button onClick={togglePlay} className={`w-16 h-16 rounded-full flex items-center justify-center shadow-lg transform active:scale-95 transition-all theme-play ${isPlaying ? 'is-playing' : ''}`}>{isPlaying ? <Icons.Pause /> : <Icons.Play style={{marginLeft:4}} />}</button>
                                     <button onClick={nextPhrase} className="text-slate-400 hover:text-slate-600 p-2 rounded-full hover:bg-slate-100"><Icons.SkipForward /></button>
@@ -775,20 +1052,53 @@
                         </div>
 
                         {/* RIGHT COLUMN: Playlist */}
-                        <div className="flex-1 flex flex-col h-full overflow-hidden">
-                            <div className="p-3 border-b theme-border text-xs font-bold uppercase tracking-wider sticky top-0 theme-section-header">Playlist</div>
+                        <div className="md:w-5/12 lg:w-1/3 flex flex-col h-full overflow-hidden">
+                            <div className="p-3 border-b theme-border theme-section-header sticky top-0">
+                                <div className="flex items-center justify-between text-xs font-bold uppercase tracking-wider">
+                                    <span>{showBookmarksOnly ? 'Starred' : 'Playlist'}</span>
+                                    <button onClick={() => setShowBookmarksOnly(v => !v)} className="text-[11px] px-2 py-1 rounded-full font-bold theme-chip">
+                                        {showBookmarksOnly ? 'All' : `Starred (${bookmarks.length})`}
+                                    </button>
+                                </div>
+                                <div className="mt-2 flex items-center gap-2">
+                                    <select className="flex-1 p-2 rounded-lg font-medium outline-none truncate theme-chip" value={activeCatIndex} onChange={(e) => { stop(); setActiveCatIndex(Number(e.target.value)); setActivePhraseIndex(0); }}>
+                                        {data.map((cat, idx) => {
+                                            const progress = ProgressService.getCategoryProgress(cat.category);
+                                            const percentage = Math.round((progress.times_practiced / progress.target_practices) * 100);
+                                            return <option key={idx} value={idx}>{cat.category} ({percentage}%)</option>
+                                        })}
+                                    </select>
+                                    <label className="cursor-pointer p-2 rounded-lg font-medium theme-button-primary">+ <input type="file" accept=".yaml,.yml" onChange={(e) => handleNewYamlFile(e)} className="hidden" /></label>
+                                </div>
+                            </div>
                             <div className="flex-1 overflow-y-auto playlist-scroll" ref={listRef}>
-                                {phrases.map((phrase, idx) => {
-                                    const isBookmarked = ProgressService.isBookmarked(phrase);
+                                {(showBookmarksOnly ? bookmarkItems : phrases).map((phrase, idx) => {
+                                    const isBookmarked = showBookmarksOnly ? true : ProgressService.isBookmarked(phrase);
+                                    const isActive = showBookmarksOnly
+                                        ? phrase._location && phrase._location.catIndex === activeCatIndex && phrase._location.phraseIndex === activePhraseIndex
+                                        : idx === activePhraseIndex;
                                     return (
-                                        <div key={idx} onClick={() => selectPhrase(idx)} className={`p-4 border-b flex items-center gap-4 cursor-pointer hover:bg-slate-50 transition-colors ${idx === activePhraseIndex ? 'bg-blue-50 border-l-4 border-l-blue-500' : 'border-transparent border-l-4'}`}>
-                                            <span className={`text-xs font-bold w-6 h-6 flex items-center justify-center rounded-full ${idx === activePhraseIndex ? 'bg-blue-200 text-blue-700' : 'bg-slate-100 text-slate-400'}`}>{idx + 1}</span>
+                                        <div
+                                            key={showBookmarksOnly ? phrase._key : idx}
+                                            onClick={() => {
+                                                if (showBookmarksOnly && phrase._location) {
+                                                    stop();
+                                                    setActiveCatIndex(phrase._location.catIndex);
+                                                    setActivePhraseIndex(phrase._location.phraseIndex);
+                                                    setLoopCount(1);
+                                                } else {
+                                                    selectPhrase(idx);
+                                                }
+                                            }}
+                                            className={`p-4 border-b flex items-center gap-4 cursor-pointer hover:bg-slate-50 transition-colors ${isActive ? 'bg-blue-50 border-l-4 border-l-blue-500' : 'border-transparent border-l-4'}`}
+                                        >
+                                            <span className={`text-xs font-bold w-6 h-6 flex items-center justify-center rounded-full ${isActive ? 'bg-blue-200 text-blue-700' : 'bg-slate-100 text-slate-400'}`}>{showBookmarksOnly ? '★' : idx + 1}</span>
                                             <div className="flex-1 min-w-0">
-                                                <p className={`font-medium truncate ${idx === activePhraseIndex ? 'text-blue-900' : 'text-slate-700'}`}>{phrase.chinese}</p>
+                                                <p className={`font-medium truncate ${isActive ? 'text-blue-900' : 'text-slate-700'}`}>{phrase.chinese}</p>
                                                 <p className="text-xs text-slate-400 truncate">{phrase.pinyin}</p>
                                             </div>
                                             <button onClick={(e) => { e.stopPropagation(); ProgressService.toggleBookmark(phrase); setBookmarkTrigger(prev => prev + 1); }} className="focus:outline-none p-2 hover:bg-slate-100 rounded-full"><span className={`text-xl leading-none ${isBookmarked ? 'text-yellow-500' : 'text-gray-200'}`}>★</span></button>
-                                            {idx === activePhraseIndex && isPlaying && <Icons.Mic className="w-4 h-4 text-blue-500 animate-bounce flex-shrink-0" />}
+                                            {isActive && isPlaying && <Icons.Mic className="w-4 h-4 text-blue-500 animate-bounce flex-shrink-0" />}
                                         </div>
                                     );
                                 })}
@@ -876,7 +1186,10 @@
                                             onClick={() => { setTheme(t.id); setShowThemePanel(false); }}
                                             className={`text-left text-sm px-3 py-2 rounded-lg border theme-border ${theme === t.id ? 'theme-button-primary' : 'theme-chip'}`}
                                         >
-                                            {t.name}
+                                            <span className="inline-flex items-center gap-2">
+                                                <span className="w-3 h-3 rounded-full border theme-border" style={{ background: t.swatch }}></span>
+                                                {t.name}
+                                            </span>
                                         </button>
                                     ))}
                                 </div>

@@ -13,6 +13,9 @@ YAML_FOLDER = "yaml"
 CHINESE_VOICE = "zh-CN-XiaoxiaoNeural"  # Options: zh-CN-XiaoxiaoNeural, zh-CN-YunxiNeural
 ENGLISH_VOICE = "en-US-JennyNeural"  # Options: en-US-JennyNeural, en-US-GuyNeural
 SPEAKING_RATE = 0.85  # Speaking rate: 1.0 is normal speed, 0.85 is 85% of normal speed, 0.8 is 80% of normal speed
+REQUEST_TIMEOUT = 60  # seconds per request
+RETRY_COUNT = 3  # retries per phrase
+RETRY_BACKOFF = 2.0  # seconds base backoff
 
 def load_phrases_from_yaml(yaml_file):
     """Loads phrases from YAML file and extracts both Chinese and English text."""
@@ -45,18 +48,37 @@ def get_filename(text, category):
 async def generate_audio_for_text(text, lang, output_path):
     """Generate audio for a single text."""
     voice = CHINESE_VOICE if lang == 'zh-CN' else ENGLISH_VOICE
-    try:
-        # Create directory if it doesn't exist
-        os.makedirs(os.path.dirname(output_path), exist_ok=True)
-        
-        # Use Edge TTS rate to control speaking speed
-        rate = get_edge_rate(SPEAKING_RATE)
-        communicate = edge_tts.Communicate(text, voice, rate=rate)
-        await communicate.save(output_path)
-        return True
-    except Exception as e:
-        print(f"Error generating '{text}': {e}")
-        return False
+    # Create directory if it doesn't exist
+    os.makedirs(os.path.dirname(output_path), exist_ok=True)
+    temp_path = output_path + ".tmp"
+
+    for attempt in range(1, RETRY_COUNT + 1):
+        try:
+            # Use Edge TTS rate to control speaking speed
+            rate = get_edge_rate(SPEAKING_RATE)
+            communicate = edge_tts.Communicate(text, voice, rate=rate)
+            await asyncio.wait_for(communicate.save(temp_path), timeout=REQUEST_TIMEOUT)
+
+            # Validate non-empty file
+            if not os.path.exists(temp_path) or os.path.getsize(temp_path) == 0:
+                raise RuntimeError("Generated file is empty")
+
+            # Atomically replace target
+            os.replace(temp_path, output_path)
+            return True
+        except Exception as e:
+            if os.path.exists(temp_path):
+                try:
+                    os.remove(temp_path)
+                except OSError:
+                    pass
+            print(f"Error generating '{text}': {e}")
+            if attempt < RETRY_COUNT:
+                backoff = RETRY_BACKOFF * attempt
+                print(f"Retrying ({attempt}/{RETRY_COUNT}) after {backoff:.1f}s...")
+                await asyncio.sleep(backoff)
+            else:
+                return False
 
 async def generate_all_for_yaml(yaml_file):
     """Generate audio files for a specific YAML file."""

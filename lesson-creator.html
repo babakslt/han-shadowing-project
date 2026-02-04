@@ -77,6 +77,76 @@
             --chip-text: #334b6b;
             --shadow: 0 24px 70px rgba(25, 58, 96, 0.16);
         }
+        [data-theme="neon_dusk"] {
+            --bg: #eef9ff;
+            --panel: #eef9ff;
+            --panel-2: #ffffff;
+            --text: #090029;
+            --muted: #200fda;
+            --border: #cfe8f7;
+            --accent: #200fda;
+            --accent-contrast: #eef9ff;
+            --accent-soft: #d9ffdf;
+            --chip: #eef9ff;
+            --chip-text: #090029;
+            --shadow: 0 24px 70px rgba(9, 0, 41, 0.16);
+        }
+        [data-theme="crimson_sand"] {
+            --bg: #fdf0d5;
+            --panel: #fdf0d5;
+            --panel-2: #fff6e3;
+            --text: #780000;
+            --muted: #003049;
+            --border: #ead6b0;
+            --accent: #c1121f;
+            --accent-contrast: #fdf0d5;
+            --accent-soft: #f7d6c5;
+            --chip: #f7e6c8;
+            --chip-text: #003049;
+            --shadow: 0 24px 70px rgba(120, 0, 0, 0.14);
+        }
+        [data-theme="ember_circuit"] {
+            --bg: #ffb000;
+            --panel: #fff3d1;
+            --panel-2: #ffe7b0;
+            --text: #863c00;
+            --muted: #c93131;
+            --border: #f2c879;
+            --accent: #a4031f;
+            --accent-contrast: #fff3d1;
+            --accent-soft: #ffd7b0;
+            --chip: #ffe0b6;
+            --chip-text: #863c00;
+            --shadow: 0 24px 70px rgba(134, 60, 0, 0.18);
+        }
+        [data-theme="blue_gold"] {
+            --bg: #00296b;
+            --panel: #003f88;
+            --panel-2: #00509d;
+            --text: #ffd500;
+            --muted: #fdc500;
+            --border: #00448f;
+            --accent: #ffd500;
+            --accent-contrast: #00296b;
+            --accent-soft: #fdc500;
+            --chip: #003f88;
+            --chip-text: #ffd500;
+            --shadow: 0 24px 70px rgba(0, 41, 107, 0.25);
+        }
+        [data-theme="teal_terracotta"] {
+            --bg: #edddd4;
+            --panel: #ffffff;
+            --panel-2: #f3e9e2;
+            --text: #283d3b;
+            --muted: #197278;
+            --border: #d8cfc8;
+            --accent: #197278;
+            --accent-contrast: #edddd4;
+            --accent-soft: #e7c3b8;
+            --chip: #edddd4;
+            --chip-text: #283d3b;
+            --shadow: 0 24px 70px rgba(40, 61, 59, 0.16);
+        }
         body { background: var(--bg); color: var(--text); }
         .theme-shell { background: var(--panel); border: 1px solid var(--border); box-shadow: var(--shadow); }
         .theme-border { border-color: var(--border) !important; }
@@ -102,7 +172,6 @@
                 </div>
                 <div class="flex items-center gap-2">
                     <a href="index.html" class="text-xs px-3 py-1 rounded-full font-bold theme-chip">Back to Player</a>
-                    <a href="memory-activator.html" class="text-xs px-3 py-1 rounded-full font-bold theme-chip">Memory Activator</a>
                 </div>
             </div>
 
@@ -177,10 +246,9 @@
                 </div>
                 <div class="theme-card rounded-2xl p-5">
                     <h2 class="font-bold text-lg mb-2">4. Use in Player</h2>
-                    <p class="text-sm theme-muted mb-3">Open `index.html` or `memory-activator.html` and add the YAML with the "+" button.</p>
+                    <p class="text-sm theme-muted mb-3">Open `index.html` and add the YAML with the "+" button. Switch to Memory mode with the Shadow/Memory toggle.</p>
                     <div class="flex items-center gap-2">
                         <a href="index.html" class="px-4 py-2 rounded-lg font-semibold theme-button-primary">Open Player</a>
-                        <a href="memory-activator.html" class="px-4 py-2 rounded-lg font-semibold theme-button-soft">Memory Activator</a>
                     </div>
                 </div>
             </div>
@@ -192,10 +260,15 @@
         const storedTheme = localStorage.getItem(THEME_STORAGE_KEY) || 'paper';
         document.documentElement.setAttribute('data-theme', storedTheme);
         const THEMES = [
-            { id: 'paper', name: 'Paper & Lantern' },
-            { id: 'ink', name: 'Calm Ink Wash' },
-            { id: 'studio', name: 'Modern Studio' },
-            { id: 'glacier', name: 'Glacier Bright' }
+            { id: 'paper', name: 'Paper & Lantern', swatch: '#c25b2d' },
+            { id: 'ink', name: 'Calm Ink Wash', swatch: '#2d4f5d' },
+            { id: 'studio', name: 'Modern Studio', swatch: '#111827' },
+            { id: 'glacier', name: 'Glacier Bright', swatch: '#2b6cb0' },
+            { id: 'neon_dusk', name: 'Neon Dusk', swatch: '#200fda' },
+            { id: 'crimson_sand', name: 'Crimson Sand', swatch: '#c1121f' },
+            { id: 'ember_circuit', name: 'Ember Circuit', swatch: '#a4031f' },
+            { id: 'blue_gold', name: 'Blue Gold', swatch: '#ffd500' },
+            { id: 'teal_terracotta', name: 'Teal Terracotta', swatch: '#197278' }
         ];
 
         const inputText = document.getElementById('inputText');
@@ -236,7 +309,7 @@
             THEMES.forEach((t) => {
                 const btn = document.createElement('button');
                 btn.className = `text-left text-sm px-3 py-2 rounded-lg border theme-border ${current === t.id ? 'theme-button-primary' : 'theme-chip'}`;
-                btn.textContent = t.name;
+                btn.innerHTML = `<span class="inline-flex items-center gap-2"><span class="w-3 h-3 rounded-full border theme-border" style="background: ${t.swatch}"></span>${t.name}</span>`;
                 btn.addEventListener('click', () => {
                     document.documentElement.setAttribute('data-theme', t.id);
                     localStorage.setItem(THEME_STORAGE_KEY, t.id);

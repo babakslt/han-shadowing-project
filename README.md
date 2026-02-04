@@ -74,8 +74,8 @@ This will:
 ### Use the Web Applications
 
 1. **Shadowing App**: Open `index.html` in your web browser
-2. **Memory Activator**: Open `memory-activator.html` in your web browser
-3. Both applications will automatically use the pre-generated audio files from the `audio/` folder's category subfolders
+2. Use the Shadow/Memory toggle in the player to switch modes
+3. The application will automatically use the pre-generated audio files from the `audio/` folder's category subfolders
 4. Use the dropdown menu to select categories
 5. Use the "+" button to add new YAML files without refreshing
 6. Set category targets using the input field below the category selector
@@ -86,7 +86,7 @@ This will:
 
 ### Memory Activator Mode
 
-The Memory Activator provides an alternative learning sequence:
+The Memory Activator provides an alternative learning sequence in the main player:
 - Plays English audio first
 - Pauses to allow mental recall of the Chinese translation
 - Plays Chinese audio for verification

@@ -10,7 +10,7 @@ This repository is a Mandarin shadowing web app with a Python audio generator. I
 
 ## Key Files
 - `index.html`: Main React-in-browser shadowing app.
-- `memory-activator.html`: Memory activator mode (EN audio -> pause -> CH audio -> pause).
+- Memory Activator mode is now inside `index.html` (toggle in header). `memory-activator.html` removed.
 - `lesson-creator.html`: New lesson builder with CSV/TSV paste, YAML export, auto-pinyin.
 - `main.py`: Generates MP3 audio for YAML lessons.
 - `yaml/`: Lesson data.
@@ -35,4 +35,3 @@ This repository is a Mandarin shadowing web app with a Python audio generator. I
 
 ## Git Notes
 - Git push previously failed due to network (github.com not reachable).
-
