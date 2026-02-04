@@ -143,6 +143,92 @@
             Layers: () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="12 2 2 7 12 12 22 7 12 2"></polygon><polyline points="2 17 12 22 22 17"></polyline><polyline points="2 12 12 17 22 12"></polyline></svg>
         };
 
+        // --- KEYBOARD SHORTCUTS ---
+        const SHORTCUT_STORAGE_KEY = 'keyboardShortcuts';
+        const DEFAULT_SHORTCUTS = {
+            PLAY_PAUSE: 'SPACE',
+            SPEED_UP: 'W',
+            SPEED_DOWN: 'S',
+            PREV_PHRASE: 'A',
+            NEXT_PHRASE: 'D',
+            PAUSE_DOWN: 'Q',
+            PAUSE_UP: 'E',
+            RESTART: 'R',
+            BOOKMARK: 'B',
+            LOOPS_1: '1',
+            LOOPS_2: '2',
+            LOOPS_3: '3',
+            LOOPS_4: '4',
+            LOOPS_5: '5',
+            LOOPS_6: '6',
+            LOOPS_7: '7',
+            LOOPS_8: '8',
+            LOOPS_9: '9',
+            TOGGLE_CN: 'CTRL+ALT+C',
+            TOGGLE_PY: 'CTRL+ALT+Z',
+            TOGGLE_EN: 'CTRL+ALT+X',
+            HELP: '?',
+            CLOSE: 'ESC'
+        };
+        const SHORTCUT_ACTIONS = [
+            { id: 'PLAY_PAUSE', label: 'Play/Pause' },
+            { id: 'SPEED_UP', label: 'Speed +' },
+            { id: 'SPEED_DOWN', label: 'Speed -' },
+            { id: 'PREV_PHRASE', label: 'Prev Phrase' },
+            { id: 'NEXT_PHRASE', label: 'Next Phrase' },
+            { id: 'PAUSE_DOWN', label: 'Pause -' },
+            { id: 'PAUSE_UP', label: 'Pause +' },
+            { id: 'RESTART', label: 'Restart Phrase' },
+            { id: 'BOOKMARK', label: 'Bookmark' },
+            { id: 'TOGGLE_CN', label: 'Toggle Chinese' },
+            { id: 'TOGGLE_PY', label: 'Toggle Pinyin' },
+            { id: 'TOGGLE_EN', label: 'Toggle English' },
+            { id: 'LOOPS_1', label: 'Set Loops 1' },
+            { id: 'LOOPS_2', label: 'Set Loops 2' },
+            { id: 'LOOPS_3', label: 'Set Loops 3' },
+            { id: 'LOOPS_4', label: 'Set Loops 4' },
+            { id: 'LOOPS_5', label: 'Set Loops 5' },
+            { id: 'LOOPS_6', label: 'Set Loops 6' },
+            { id: 'LOOPS_7', label: 'Set Loops 7' },
+            { id: 'LOOPS_8', label: 'Set Loops 8' },
+            { id: 'LOOPS_9', label: 'Set Loops 9' },
+            { id: 'HELP', label: 'Show Shortcuts' },
+            { id: 'CLOSE', label: 'Close Modals' }
+        ];
+        const normalizeCombo = (combo) => (combo || '').replace(/\s+/g, '').toUpperCase();
+        const loadShortcuts = () => {
+            try {
+                const saved = JSON.parse(localStorage.getItem(SHORTCUT_STORAGE_KEY) || '{}');
+                const merged = { ...DEFAULT_SHORTCUTS, ...saved };
+                Object.keys(merged).forEach((k) => { merged[k] = normalizeCombo(merged[k]); });
+                return merged;
+            } catch {
+                return { ...DEFAULT_SHORTCUTS };
+            }
+        };
+        const getComboFromEvent = (e) => {
+            let key = e.key;
+            if (!key) return '';
+            if (key === ' ') key = 'SPACE';
+            if (key === 'Escape') key = 'ESC';
+            if (key === 'ArrowLeft') key = 'LEFT';
+            if (key === 'ArrowRight') key = 'RIGHT';
+            if (key === 'ArrowUp') key = 'UP';
+            if (key === 'ArrowDown') key = 'DOWN';
+            const isSingleChar = key.length === 1;
+            const hasModifier = e.ctrlKey || e.altKey || e.metaKey;
+            if (isSingleChar && !hasModifier) {
+                return normalizeCombo(key === 'SPACE' ? 'SPACE' : key.toUpperCase());
+            }
+            const parts = [];
+            if (e.ctrlKey) parts.push('CTRL');
+            if (e.altKey) parts.push('ALT');
+            if (e.metaKey) parts.push('META');
+            if (e.shiftKey) parts.push('SHIFT');
+            parts.push(key.toUpperCase());
+            return normalizeCombo(parts.join('+'));
+        };
+
         // --- PRACTICE MODES TEMPLATES ---
         const SEQUENCE_TEMPLATES = {
             SHADOWING: [
@@ -184,6 +270,8 @@
             // UI toggles
             const [showHelpModal, setShowHelpModal] = useState(false);
             const [showProfileModal, setShowProfileModal] = useState(false);
+            const [isEditingShortcuts, setIsEditingShortcuts] = useState(false);
+            const [shortcuts, setShortcuts] = useState(() => loadShortcuts());
             const [bookmarkTrigger, setBookmarkTrigger] = useState(0); 
 
             const timerRef = useRef(null);
@@ -198,6 +286,10 @@
                 stateRef.current = { activePhraseIndex, activeCatIndex, loopCount, loops, pauseTime, isPlaying, speed, data, practiceMode };
                 if(audioRef.current) audioRef.current.playbackRate = speed;
             }, [activePhraseIndex, activeCatIndex, loopCount, loops, pauseTime, isPlaying, speed, data, practiceMode]);
+
+            useEffect(() => {
+                localStorage.setItem(SHORTCUT_STORAGE_KEY, JSON.stringify(shortcuts));
+            }, [shortcuts]);
 
             // --- AUDIO ENGINE CORE ---
             const playAudio = async (text, lang, onEnd) => {
@@ -438,23 +530,38 @@
 
             const handleKeyPress = (e) => {
                 if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
-                switch(e.key) {
-                    case ' ': e.preventDefault(); togglePlay(); break;
-                    case 'w': case 'W': e.preventDefault(); document.querySelector('.speed-increase-btn')?.click(); break;
-                    case 's': case 'S': e.preventDefault(); document.querySelector('.speed-decrease-btn')?.click(); break;
-                    case 'a': case 'A': e.preventDefault(); prevPhrase(); break;
-                    case 'd': case 'D': e.preventDefault(); nextPhrase(); break;
-                    case 'q': case 'Q': e.preventDefault(); document.querySelector('.pause-decrease-btn')?.click(); break;
-                    case 'e': case 'E': e.preventDefault(); document.querySelector('.pause-increase-btn')?.click(); break;
-                    case 'r': case 'R': e.preventDefault(); restartPhrase(); break;
-                    case 'b': case 'B': e.preventDefault(); toggleBookmarkForCurrentPhrase(); break;
-                    case '1': case '2': case '3': case '4': case '5': case '6': case '7': case '8': case '9':
-                        e.preventDefault(); setLoops(parseInt(e.key)); break;
-                    case '?': e.preventDefault(); setShowHelpModal(true); break;
-                    case 'Escape': setShowHelpModal(false); setShowProfileModal(false); break;
+                const combo = getComboFromEvent(e);
+                if (!combo) return;
+                const action = Object.entries(shortcuts).find(([, value]) => normalizeCombo(value) === combo)?.[0];
+                if (!action) return;
+                e.preventDefault();
+                switch(action) {
+                    case 'PLAY_PAUSE': togglePlay(); break;
+                    case 'SPEED_UP': document.querySelector('.speed-increase-btn')?.click(); break;
+                    case 'SPEED_DOWN': document.querySelector('.speed-decrease-btn')?.click(); break;
+                    case 'PREV_PHRASE': prevPhrase(); break;
+                    case 'NEXT_PHRASE': nextPhrase(); break;
+                    case 'PAUSE_DOWN': document.querySelector('.pause-decrease-btn')?.click(); break;
+                    case 'PAUSE_UP': document.querySelector('.pause-increase-btn')?.click(); break;
+                    case 'RESTART': restartPhrase(); break;
+                    case 'BOOKMARK': toggleBookmarkForCurrentPhrase(); break;
+                    case 'TOGGLE_CN': setShowCn(v => !v); break;
+                    case 'TOGGLE_PY': setShowPy(v => !v); break;
+                    case 'TOGGLE_EN': setShowEn(v => !v); break;
+                    case 'LOOPS_1': setLoops(1); break;
+                    case 'LOOPS_2': setLoops(2); break;
+                    case 'LOOPS_3': setLoops(3); break;
+                    case 'LOOPS_4': setLoops(4); break;
+                    case 'LOOPS_5': setLoops(5); break;
+                    case 'LOOPS_6': setLoops(6); break;
+                    case 'LOOPS_7': setLoops(7); break;
+                    case 'LOOPS_8': setLoops(8); break;
+                    case 'LOOPS_9': setLoops(9); break;
+                    case 'HELP': setShowHelpModal(true); break;
+                    case 'CLOSE': setShowHelpModal(false); setShowProfileModal(false); break;
                 }
             };
-            useEffect(() => { window.addEventListener('keydown', handleKeyPress); return () => window.removeEventListener('keydown', handleKeyPress); }, [activePhraseIndex, activeCatIndex, isPlaying]);
+            useEffect(() => { window.addEventListener('keydown', handleKeyPress); return () => window.removeEventListener('keydown', handleKeyPress); }, [activePhraseIndex, activeCatIndex, isPlaying, shortcuts]);
             
             // Scroll Ref
             const listRef = useRef(null);
@@ -572,17 +679,43 @@
                     {/* Modals */}
                     {showHelpModal && (
                         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-                            <div className="bg-white rounded-lg max-w-md w-full p-6 relative shadow-xl">
+                            <div className="bg-white rounded-lg max-w-lg w-full p-6 relative shadow-xl">
                                 <button onClick={() => setShowHelpModal(false)} className="absolute top-3 right-3 text-gray-500 hover:text-gray-700">✕</button>
-                                <h2 className="text-xl font-bold mb-4 text-center">Keyboard Shortcuts</h2>
-                                <div className="space-y-2 text-sm">
-                                    <div className="flex justify-between py-1 border-b"><span>Space</span><span>Play/Pause</span></div>
-                                    <div className="flex justify-between py-1 border-b"><span>W / S</span><span>Speed +/-</span></div>
-                                    <div className="flex justify-between py-1 border-b"><span>A / D</span><span>Prev/Next Phrase</span></div>
-                                    <div className="flex justify-between py-1 border-b"><span>Q / E</span><span>Pause +/-</span></div>
-                                    <div className="flex justify-between py-1 border-b"><span>R</span><span>Restart Phrase</span></div>
-                                    <div className="flex justify-between py-1 border-b"><span>B</span><span>Bookmark</span></div>
-                                    <div className="flex justify-between py-1"><span>Esc</span><span>Close</span></div>
+                                <div className="flex items-center justify-between mb-3">
+                                    <h2 className="text-xl font-bold">Keyboard Shortcuts</h2>
+                                    <div className="flex items-center gap-2">
+                                        <button onClick={() => setIsEditingShortcuts(v => !v)} className="text-xs px-3 py-1 rounded-full font-bold border border-slate-200 bg-slate-100 hover:bg-slate-200">{isEditingShortcuts ? 'Done' : 'Edit'}</button>
+                                        <button onClick={() => setShortcuts({ ...DEFAULT_SHORTCUTS })} className="text-xs px-3 py-1 rounded-full font-bold border border-slate-200 bg-white hover:bg-slate-100">Reset</button>
+                                    </div>
+                                </div>
+                                {isEditingShortcuts && <div className="text-xs text-slate-500 mb-3">Click a shortcut and press new keys. Backspace clears.</div>}
+                                <div className="space-y-2 text-sm max-h-80 overflow-y-auto pr-1">
+                                    {SHORTCUT_ACTIONS.map((action) => (
+                                        <div key={action.id} className="flex justify-between items-center py-1 border-b">
+                                            <span>{action.label}</span>
+                                            {!isEditingShortcuts ? (
+                                                <span className="font-mono text-slate-600">{shortcuts[action.id]}</span>
+                                            ) : (
+                                                <input
+                                                    className="w-36 text-xs font-mono text-right border border-slate-200 rounded px-2 py-1 bg-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-200"
+                                                    value={shortcuts[action.id] || ''}
+                                                    onChange={() => {}}
+                                                    onKeyDown={(e) => {
+                                                        e.preventDefault();
+                                                        e.stopPropagation();
+                                                        if (['Shift', 'Control', 'Alt', 'Meta'].includes(e.key)) return;
+                                                        if (e.key === 'Backspace' || e.key === 'Delete') {
+                                                            setShortcuts(prev => ({ ...prev, [action.id]: '' }));
+                                                            return;
+                                                        }
+                                                        const combo = getComboFromEvent(e);
+                                                        if (!combo) return;
+                                                        setShortcuts(prev => ({ ...prev, [action.id]: combo }));
+                                                    }}
+                                                />
+                                            )}
+                                        </div>
+                                    ))}
                                 </div>
                             </div>
                         </div>
