@@ -4,8 +4,34 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Lesson Creator</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://unpkg.com/pinyin-pro@3.18.2/dist/index.js"></script>
+    <link rel="icon" type="image/svg+xml" href="favicon.svg">
+    <!-- Tailwind CSS -->
+    <script src="./vendor/tailwindcss.min.js" onerror="this.onerror=null;this.src='https://cdn.tailwindcss.com';"></script>
+    <!-- Pinyin Pro -->
+    <script src="./vendor/pinyin-pro.min.js" onerror="this.onerror=null;this.src='https://unpkg.com/pinyin-pro@3.18.2/dist/index.js';"></script>
+    <script>
+        (function warnIfFileScheme() {
+            if (window.location.protocol !== 'file:') return;
+            const notice = document.createElement('div');
+            notice.style.cssText = [
+                'position:fixed',
+                'left:16px',
+                'right:16px',
+                'bottom:16px',
+                'z-index:9999',
+                'padding:12px 16px',
+                'border-radius:12px',
+                'background:#7c2d12',
+                'color:#fff7ed',
+                'font-size:14px',
+                'box-shadow:0 10px 30px rgba(0,0,0,0.25)'
+            ].join(';');
+            notice.textContent = 'Local vendor scripts are blocked under file:// in Chrome. Run `python3 -m http.server 8000` in this folder and open http://localhost:8000/lesson-creator.html instead.';
+            document.addEventListener('DOMContentLoaded', () => {
+                document.body.appendChild(notice);
+            });
+        })();
+    </script>
     <style>
         :root {
             --bg: linear-gradient(135deg, #f6efe5, #efe3d2);
@@ -199,6 +225,11 @@
                         </select>
                         <button id="parseBtn" class="px-4 py-2 rounded-lg font-semibold theme-button-primary">Parse</button>
                     </div>
+                    <div class="flex flex-wrap items-center gap-2 mt-3">
+                        <button id="addRow" class="px-3 py-2 rounded-lg font-semibold theme-button-soft">Add Row</button>
+                        <button id="fillPinyin" class="px-3 py-2 rounded-lg font-semibold theme-button-soft">Fill Pinyin</button>
+                        <button id="sortZh" class="px-3 py-2 rounded-lg font-semibold theme-button-soft">Sort Chinese A→Z</button>
+                    </div>
                     <div id="pinyinStatus" class="mt-2 text-xs theme-muted"></div>
                     <div class="mt-4 text-xs theme-muted">
                         Tip: You can paste from spreadsheets. Tabs are supported automatically.
@@ -218,6 +249,7 @@
                                     <th class="text-left p-2">Chinese</th>
                                     <th class="text-left p-2">Pinyin (optional)</th>
                                     <th class="text-left p-2">English</th>
+                                    <th class="text-left p-2 w-10"></th>
                                 </tr>
                             </thead>
                             <tbody id="previewBody" class="bg-white"></tbody>
@@ -285,6 +317,9 @@
         const autoPinyin = document.getElementById('autoPinyin');
         const pinyinStatus = document.getElementById('pinyinStatus');
         const toneType = document.getElementById('toneType');
+        const addRow = document.getElementById('addRow');
+        const fillPinyin = document.getElementById('fillPinyin');
+        const sortZh = document.getElementById('sortZh');
 
         const themePanel = document.createElement('div');
         themePanel.className = 'fixed bottom-5 right-5 z-40';
@@ -365,18 +400,22 @@
             return yaml;
         };
 
-        const renderPreview = (rows) => {
+        let rowsState = [];
+
+        const renderPreview = () => {
             previewBody.innerHTML = '';
-            rows.forEach((row) => {
+            rowsState.forEach((row, idx) => {
                 const tr = document.createElement('tr');
                 tr.innerHTML = `
-                    <td class="p-2 border-t">${row.chinese || ''}</td>
-                    <td class="p-2 border-t theme-muted">${row.pinyin || ''}</td>
-                    <td class="p-2 border-t">${row.meaning || ''}</td>
+                    <td class="p-2 border-t"><input data-idx="${idx}" data-field="chinese" class="w-full bg-transparent outline-none" value="${row.chinese || ''}" /></td>
+                    <td class="p-2 border-t theme-muted"><input data-idx="${idx}" data-field="pinyin" class="w-full bg-transparent outline-none theme-muted" value="${row.pinyin || ''}" /></td>
+                    <td class="p-2 border-t"><input data-idx="${idx}" data-field="meaning" class="w-full bg-transparent outline-none" value="${row.meaning || ''}" /></td>
+                    <td class="p-2 border-t text-right"><button data-remove="${idx}" class="text-xs px-2 py-1 rounded theme-button-soft">Remove</button></td>
                 `;
                 previewBody.appendChild(tr);
             });
-            rowCount.textContent = rows.length.toString();
+            rowCount.textContent = rowsState.length.toString();
+            yamlOutput.value = buildYaml(categoryName.value, rowsState);
         };
 
         const parseData = () => {
@@ -402,15 +441,38 @@
                     meaning: parts.length >= 3 ? parts[2] : parts[1]
                 });
             }
-            const yaml = buildYaml(categoryName.value, rows);
-            yamlOutput.value = yaml;
-            renderPreview(rows);
+            rowsState = rows;
+            renderPreview();
 
             const filename = toSafeFilename(categoryName.value || 'lesson') || 'lesson';
             commandBox.textContent = `python main.py yaml/${filename}.yaml`;
         };
 
         parseBtn.addEventListener('click', parseData);
+        addRow.addEventListener('click', () => {
+            rowsState.push({ chinese: '', pinyin: '', meaning: '' });
+            renderPreview();
+        });
+        fillPinyin.addEventListener('click', () => {
+            const usePinyin = autoPinyin.checked && window.pinyinPro && typeof window.pinyinPro.pinyin === 'function';
+            if (!usePinyin) return;
+            const toneSetting = toneType.value || 'symbol';
+            rowsState = rowsState.map((row) => {
+                if (!row.pinyin && row.chinese) {
+                    try {
+                        return { ...row, pinyin: window.pinyinPro.pinyin(row.chinese, { toneType: toneSetting }) };
+                    } catch {
+                        return row;
+                    }
+                }
+                return row;
+            });
+            renderPreview();
+        });
+        sortZh.addEventListener('click', () => {
+            rowsState.sort((a, b) => (a.chinese || '').localeCompare(b.chinese || '', 'zh'));
+            renderPreview();
+        });
         loadExample.addEventListener('click', () => {
             categoryName.value = 'Lesson 1 — Greetings';
             inputText.value = [
@@ -421,6 +483,33 @@
                 '不客气,You’re welcome'
             ].join('\n');
             parseData();
+        });
+
+        previewBody.addEventListener('input', (e) => {
+            const target = e.target;
+            if (!target.dataset || target.dataset.idx === undefined) return;
+            const idx = parseInt(target.dataset.idx, 10);
+            const field = target.dataset.field;
+            if (!rowsState[idx]) return;
+            rowsState[idx][field] = target.value;
+            if (field === 'chinese' && autoPinyin.checked && !rowsState[idx].pinyin && window.pinyinPro) {
+                try {
+                    rowsState[idx].pinyin = window.pinyinPro.pinyin(target.value, { toneType: toneType.value || 'symbol' });
+                } catch {
+                    // ignore
+                }
+                renderPreview();
+            } else {
+                yamlOutput.value = buildYaml(categoryName.value, rowsState);
+            }
+        });
+
+        previewBody.addEventListener('click', (e) => {
+            const btn = e.target.closest('[data-remove]');
+            if (!btn) return;
+            const idx = parseInt(btn.dataset.remove, 10);
+            rowsState.splice(idx, 1);
+            renderPreview();
         });
 
         downloadYaml.addEventListener('click', () => {

@@ -4,18 +4,42 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Mandarin Shadowing (Multi-Mode)</title>
+    <link rel="icon" type="image/svg+xml" href="favicon.svg">
     
     <!-- React & ReactDOM -->
-    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
-    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script crossorigin="anonymous" src="./vendor/react.production.min.js" onerror="this.onerror=null;this.src='https://unpkg.com/react@18/umd/react.production.min.js';"></script>
+    <script crossorigin="anonymous" src="./vendor/react-dom.production.min.js" onerror="this.onerror=null;this.src='https://unpkg.com/react-dom@18/umd/react-dom.production.min.js';"></script>
     <!-- Babel -->
-    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="./vendor/babel.min.js" onerror="this.onerror=null;this.src='https://unpkg.com/@babel/standalone/babel.min.js';"></script>
     <!-- Tailwind CSS -->
-    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="./vendor/tailwindcss.min.js" onerror="this.onerror=null;this.src='https://cdn.tailwindcss.com';"></script>
     <!-- MD5 Library -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/blueimp-md5/2.19.0/js/md5.min.js"></script>
+    <script src="./vendor/md5.min.js" onerror="this.onerror=null;this.src='https://cdnjs.cloudflare.com/ajax/libs/blueimp-md5/2.19.0/js/md5.min.js';"></script>
     <!-- YAML Parser -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/js-yaml/4.1.0/js-yaml.min.js"></script>
+    <script src="./vendor/js-yaml.min.js" onerror="this.onerror=null;this.src='https://cdnjs.cloudflare.com/ajax/libs/js-yaml/4.1.0/js-yaml.min.js';"></script>
+    <script>
+        (function warnIfFileScheme() {
+            if (window.location.protocol !== 'file:') return;
+            const notice = document.createElement('div');
+            notice.style.cssText = [
+                'position:fixed',
+                'left:16px',
+                'right:16px',
+                'bottom:16px',
+                'z-index:9999',
+                'padding:12px 16px',
+                'border-radius:12px',
+                'background:#7c2d12',
+                'color:#fff7ed',
+                'font-size:14px',
+                'box-shadow:0 10px 30px rgba(0,0,0,0.25)'
+            ].join(';');
+            notice.textContent = 'Local vendor scripts are blocked under file:// in Chrome. Run `python3 -m http.server 8000` in this folder and open http://localhost:8000/index.html instead.';
+            document.addEventListener('DOMContentLoaded', () => {
+                document.body.appendChild(notice);
+            });
+        })();
+    </script>
     <!-- Shared Helpers -->
     <script src="./utils.js"></script>
 
@@ -206,7 +230,7 @@
 <body class="bg-slate-50 text-slate-800">
     <div id="root"></div>
 
-    <script type="text/babel">
+    <script type="text/babel" data-presets="env,react">
         const { useState, useEffect, useRef } = React;
 
         // --- USER ACCOUNT & PROGRESS SERVICE (Unchanged) ---
@@ -948,6 +972,63 @@
             const ringRadius = 26;
             const ringCirc = 2 * Math.PI * ringRadius;
             const ringOffset = ringCirc - ringCirc * memoryRepeatPercent;
+            const memoryRepeatCounts = ProgressService.getMemoryRepeatCounts();
+            const totalMemoryRepeats = Object.values(memoryRepeatCounts).reduce((sum, v) => sum + (parseInt(v, 10) || 0), 0);
+            const totalStarred = ProgressService.getBookmarks().length;
+            const totalUniquePhrases = Object.keys(ProgressService.getPhraseProgress()).length;
+            const totalPracticed = ProgressService.getUserProfile().totalPhrasesPracticed || 0;
+
+            const exportStats = (format) => {
+                const profile = ProgressService.getUserProfile();
+                const progressData = ProgressService.getProgressData();
+                const phraseProgress = ProgressService.getPhraseProgress();
+                const payload = {
+                    generatedAt: new Date().toISOString(),
+                    profile,
+                    totals: {
+                        practiced: totalPracticed,
+                        uniquePhrases: totalUniquePhrases,
+                        starred: totalStarred,
+                        memoryRepeats: totalMemoryRepeats,
+                        memoryTarget: memoryRepeatTarget
+                    },
+                    progressData,
+                    phraseProgress,
+                    memoryRepeatCounts
+                };
+                if (format === 'json') {
+                    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json;charset=utf-8' });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `han-shadow-stats-${Date.now()}.json`;
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    URL.revokeObjectURL(url);
+                    return;
+                }
+                if (format === 'csv') {
+                    const lines = [
+                        ['metric', 'value'],
+                        ['total_practiced', totalPracticed],
+                        ['unique_phrases', totalUniquePhrases],
+                        ['starred', totalStarred],
+                        ['memory_repeats', totalMemoryRepeats],
+                        ['memory_target', memoryRepeatTarget]
+                    ];
+                    const csv = lines.map((row) => row.join(',')).join('\n');
+                    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `han-shadow-stats-${Date.now()}.csv`;
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    URL.revokeObjectURL(url);
+                }
+            };
 
             return (
                 <div className="h-screen w-full flex flex-col md:p-8"> 
@@ -1033,15 +1114,29 @@
 
                             {/* Controls */}
                             <div className="p-4 border-t border-b md:border-b-0 space-y-4 z-10 shadow-sm theme-card">
-                                <div className="grid grid-cols-3 gap-2 md:gap-4 text-xs font-bold text-slate-500 text-center">
-                                    <div><label className="block mb-1 theme-warm">LOOPS: <span className="text-lg">{loops}</span></label><div className="flex items-center gap-1 justify-center"><button onClick={()=>setLoops(Math.max(1,loops-1))} className="bg-slate-100 w-8 h-8 rounded hover:bg-slate-200">-</button><button onClick={()=>setLoops(Math.min(10,loops+1))} className="bg-slate-100 w-8 h-8 rounded hover:bg-slate-200">+</button></div></div>
-                                    <div><label className="block mb-1 theme-warm">SPEED: <span className="text-lg">{speed}x</span></label><div className="flex items-center gap-1 justify-center"><button onClick={()=>setSpeed(Math.max(0.5, +(speed-0.1).toFixed(1)))} className="bg-slate-100 w-8 h-8 rounded hover:bg-slate-200 speed-decrease-btn">-</button><button onClick={()=>setSpeed(Math.min(2.0, +(speed+0.1).toFixed(1)))} className="bg-slate-100 w-8 h-8 rounded hover:bg-slate-200 speed-increase-btn">+</button></div></div>
-                                    <div><label className="block mb-1 theme-warm">PAUSE: <span className="text-lg">{pauseTime}s</span></label><div className="flex items-center gap-1 justify-center"><button onClick={()=>setPauseTime(Math.max(0, +(pauseTime-0.5).toFixed(1)))} className="bg-slate-100 w-8 h-8 rounded hover:bg-slate-200 pause-decrease-btn">-</button><button onClick={()=>setPauseTime(Math.min(10, +(pauseTime+0.5).toFixed(1)))} className="bg-slate-100 w-8 h-8 rounded hover:bg-slate-200 pause-increase-btn">+</button></div></div>
-                                </div>
-                                <div className="flex justify-center gap-6 py-2 border-t border-slate-100 mt-2">
-                                        {[{l:'汉',v:showCn,s:setShowCn,c:'blue'},{l:'PY',v:showPy,s:setShowPy,c:'indigo'},{l:'EN',v:showEn,s:setShowEn,c:'teal'}].map((t,i) => (
-                                            <button key={i} onClick={()=>t.s(!t.v)} className={`flex items-center gap-2 text-sm font-bold ${t.v?`text-${t.c}-600`:'text-slate-300'}`}><div className={`w-4 h-4 rounded-full border-2 ${t.v?`bg-${t.c}-600 border-${t.c}-600`:'border-slate-300'}`}></div>{t.l}</button>
-                                        ))}
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs font-bold text-slate-500 text-center">
+                                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 md:gap-4">
+                                        <div className="flex items-center justify-center gap-2">
+                                            <button onClick={()=>setLoops(Math.max(1,loops-1))} className="w-8 h-8 rounded-full bg-blue-100 text-blue-700 border border-blue-200 hover:bg-blue-200">-</button>
+                                            <label className="text-blue-600 text-xs font-bold">loops: <span className="text-base ml-1">{loops}</span></label>
+                                            <button onClick={()=>setLoops(Math.min(10,loops+1))} className="w-8 h-8 rounded-full bg-blue-100 text-blue-700 border border-blue-200 hover:bg-blue-200">+</button>
+                                        </div>
+                                        <div className="flex items-center justify-center gap-2">
+                                            <button onClick={()=>setSpeed(Math.max(0.5, +(speed-0.1).toFixed(1)))} className="w-8 h-8 rounded-full bg-indigo-100 text-indigo-700 border border-indigo-200 hover:bg-indigo-200 speed-decrease-btn">-</button>
+                                            <label className="text-indigo-600 text-xs font-bold">speed: <span className="text-base ml-1">{speed}x</span></label>
+                                            <button onClick={()=>setSpeed(Math.min(2.0, +(speed+0.1).toFixed(1)))} className="w-8 h-8 rounded-full bg-indigo-100 text-indigo-700 border border-indigo-200 hover:bg-indigo-200 speed-increase-btn">+</button>
+                                        </div>
+                                        <div className="flex items-center justify-center gap-2">
+                                            <button onClick={()=>setPauseTime(Math.max(0, +(pauseTime-0.5).toFixed(1)))} className="w-8 h-8 rounded-full bg-teal-100 text-teal-700 border border-teal-200 hover:bg-teal-200 pause-decrease-btn">-</button>
+                                            <label className="text-teal-600 text-xs font-bold">pause: <span className="text-base ml-1">{pauseTime}s</span></label>
+                                            <button onClick={()=>setPauseTime(Math.min(10, +(pauseTime+0.5).toFixed(1)))} className="w-8 h-8 rounded-full bg-teal-100 text-teal-700 border border-teal-200 hover:bg-teal-200 pause-increase-btn">+</button>
+                                        </div>
+                                    </div>
+                                    <div className="flex items-center justify-center gap-4">
+                                            {[{l:'汉',v:showCn,s:setShowCn,c:'blue'},{l:'PY',v:showPy,s:setShowPy,c:'indigo'},{l:'EN',v:showEn,s:setShowEn,c:'teal'}].map((t,i) => (
+                                                <button key={i} onClick={()=>t.s(!t.v)} className={`flex items-center gap-2 text-sm font-bold ${t.v?`text-${t.c}-600`:'text-slate-300'}`}><div className={`w-4 h-4 rounded-full border-2 ${t.v?`bg-${t.c}-600 border-${t.c}-600`:'border-slate-300'}`}></div>{t.l}</button>
+                                            ))}
+                                    </div>
                                 </div>
                                 <div className="flex justify-center items-center gap-4 pt-2 flex-wrap">
                                     <button onClick={prevPhrase} className="text-slate-400 hover:text-slate-600 p-2 rounded-full hover:bg-slate-100"><Icons.SkipBack /></button>
@@ -1162,11 +1257,23 @@
                                         <div className="p-3 bg-blue-50 rounded-lg text-center"><div className="text-2xl font-bold text-blue-600">{ProgressService.getUserProfile().totalPhrasesPracticed || 0}</div><div className="text-sm text-slate-600">Phrases Practiced</div></div>
                                         <div className="p-3 bg-green-50 rounded-lg text-center"><div className="text-2xl font-bold text-green-600">{Object.keys(ProgressService.getPhraseProgress()).length}</div><div className="text-sm text-slate-600">Unique Phrases</div></div>
                                     </div>
+                                    <div className="grid grid-cols-3 gap-2">
+                                        <div className="p-2 bg-amber-50 rounded-lg text-center"><div className="text-lg font-bold text-amber-600">{totalStarred}</div><div className="text-[11px] text-slate-600">Starred</div></div>
+                                        <div className="p-2 bg-teal-50 rounded-lg text-center"><div className="text-lg font-bold text-teal-600">{totalMemoryRepeats}</div><div className="text-[11px] text-slate-600">Memory Repeats</div></div>
+                                        <div className="p-2 bg-violet-50 rounded-lg text-center"><div className="text-lg font-bold text-violet-600">{memoryRepeatTarget}</div><div className="text-[11px] text-slate-600">Repeat Target</div></div>
+                                    </div>
                                     <div className="pt-2">
                                         <h3 className="font-bold mb-2">Recent Activity</h3>
                                         <div className="text-sm text-slate-600 max-h-32 overflow-y-auto">
                                             {Object.entries(ProgressService.getProgressData()).sort((a, b) => new Date(b[1].last_practiced) - new Date(a[1].last_practiced)).slice(0, 3).map(([category, data], idx) => (<div key={idx} className="flex justify-between py-1 border-b"><span>{category}</span><span>{data.times_practiced} practices</span></div>))}
                                             {Object.keys(ProgressService.getProgressData()).length === 0 && <div className="text-center py-2 text-slate-500">No practice history yet</div>}
+                                        </div>
+                                    </div>
+                                    <div className="pt-2">
+                                        <h3 className="font-bold mb-2">Export</h3>
+                                        <div className="flex items-center gap-2">
+                                            <button onClick={() => exportStats('json')} className="flex-1 py-2 px-3 bg-slate-100 text-slate-700 rounded-lg hover:bg-slate-200 transition-colors text-sm font-semibold">JSON</button>
+                                            <button onClick={() => exportStats('csv')} className="flex-1 py-2 px-3 bg-slate-100 text-slate-700 rounded-lg hover:bg-slate-200 transition-colors text-sm font-semibold">CSV</button>
                                         </div>
                                     </div>
                                     <div className="pt-4"><button onClick={() => { if (confirm('Are you sure?')) { ProgressService.resetAllProgress(); setShowProfileModal(false); } }} className="w-full py-2 px-4 bg-red-100 text-red-600 rounded-lg hover:bg-red-200 transition-colors">Reset All Progress</button></div>

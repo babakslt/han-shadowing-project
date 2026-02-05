@@ -1,0 +1,10 @@
+[Desktop Entry]
+Type=Application
+Name=Han Shadowing
+Comment=Mandarin shadowing player (local server)
+Exec=/home/slt/code/Han-Shadow2/scripts/run-local.sh 8000 index.html
+Path=/home/slt/code/Han-Shadow2
+Terminal=false
+StartupNotify=true
+Icon=/home/slt/code/Han-Shadow2/favicon.svg
+Categories=Education;AudioVideo;Utility;
